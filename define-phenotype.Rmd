@@ -27,10 +27,27 @@ get_num_list <- function(val){
 ```
 
 ```{r}
-# cases <- read_excel('data/cases.xlsx')
+(nms <- names(read_excel('data/cases.xlsx', n_max = 0)))
+ct <- vector(mode = 'character')
+for (i in nms){
+  ct <- c(ct, if (grepl('^em_yn|premedi_smoking|nurse_|caseid', i)){
+  'text'
+  } else if (grepl('postop_tnt_peak30|preop_tnt', i)) { # very high missing rate for these columns anyway
+    'text'
+  } else {'guess'})
+}
+
+cases <- read_excel('data/cases.xlsx', col_types = ct) %>% 
+  mutate(em_yn = as.factor(em_yn),
+         fileid = gsub('.vital', '', fileid))
+# cases <- readr::read_csv('data/cases.xlsx')
 # case_deets <- read_excel('data/cases-detail.xlsx')
 # labs <- read_excel('data/labs.xlsx')
-tf <- read_excel('data/tf.xlsx')
+tf <- read_excel('data/tf.xlsx') %>% 
+  mutate(fileid = gsub('.vital', '', fileid)) %>% 
+  distinct() # there are some duplicated rows in tf
+skimr::skim(tf)
+skimr::skim(cases)
 ```
 
 
@@ -39,8 +56,7 @@ massive_trans <- tf %>%
   filter(grepl('#', val), # only consider rows with #
          !grepl('cont', val),
          !val %in% c(' #', '#!', '#0316454', 'on #0')) %>% 
-  mutate(fileid = gsub('.vital', '', fileid),
-         val = gsub('[?()]', '', val) %>% 
+  mutate(val = gsub('[?()]', '', val) %>% 
            gsub('[~=]', '-', .) %>% 
            gsub('#9-`1', '#9-12', .) %>% # continuous transfusion for D1_160720_000512
            gsub('#1400cc', '#1', .) %>% # first transfusion of 400cc for D4_191003_082024
@@ -81,6 +97,11 @@ massive_trans %>% filter(fileid == 'C4_190508_124038')
 massive_trans %>% filter(fileid == 'C4_190617_074206')
 ```
 
+What about unordered like `A1_190215_132805`?
+```{r echo=FALSE}
+massive_trans %>% filter(fileid == 'A1_190215_132805')
+```
+
 ```{r}
 # massive_trans %>% filter(grepl('\\.', val)) %>% select(-fileid)
 # Also needs to replace . with -
@@ -113,9 +134,9 @@ for (patient in patients_to_check){
 
   for (i in 3:max(df_i$sep_val)){
     if ((i %in% df_i$sep_val) && (sum(df_i$sep_val <= (i-2)) > 0)){
+      pre_idx <- max(df_i$sep_val[df_i$sep_val <= (i-2)])
 
       t2 <- df_i %>% filter(sep_val == i) %>% pull(dt)
-      pre_idx <- max(df_i$sep_val[df_i$sep_val <= (i-2)])
       t1 <- df_i %>% filter(sep_val == pre_idx) %>% pull(dt)
       diff_h <- c(diff_h, difftime(t2, t1, units = 'hours') %>% as.numeric())
     }
@@ -133,6 +154,17 @@ phenotypes <- data.frame(fileid = unique(massive_trans$fileid)) %>%
 
 table(phenotypes$had_mass_trans)
 phenotypes %>% readr::write_csv('data/mass-trans-phenotype.csv')
+
+tf %>% 
+  left_join(phenotypes, by = 'fileid') %>% 
+  readr::write_csv('data/tf_pheno.csv')
+
+tf_pheno <- tf %>% 
+  left_join(phenotypes, by = 'fileid') 
+
+cases %>% 
+  left_join(phenotypes, by = 'fileid') %>% 
+  readr::write_csv('data/case_pheno.csv')
 ```
 
 
@@ -141,5 +173,7 @@ Check: `C1_191121_080136` should have massive transfusion.
 
 ```{r echo=FALSE}
 phenotypes %>% filter(fileid %in% c('C1_191121_080136', 'D4_191003_082024'))
+
+
 ```
 

@@ -386,16 +386,1216 @@ get_num_list &lt;- function(val){
   }
   gsub(&#39;#&#39;, &#39;&#39;, val)
 }</code></pre>
-<pre class="r"><code># cases &lt;- read_excel(&#39;data/cases.xlsx&#39;)
+<pre class="r"><code>(nms &lt;- names(read_excel(&#39;data/cases.xlsx&#39;, n_max = 0)))</code></pre>
+<pre><code>##  [1] &quot;fileid&quot;                 &quot;opid&quot;                   &quot;caseid&quot;                
+##  [4] &quot;opname&quot;                 &quot;sex&quot;                    &quot;age&quot;                   
+##  [7] &quot;em_yn&quot;                  &quot;weight&quot;                 &quot;height&quot;                
+## [10] &quot;dept&quot;                   &quot;orin&quot;                   &quot;orout&quot;                 
+## [13] &quot;opstart&quot;                &quot;opend&quot;                  &quot;admission_date&quot;        
+## [16] &quot;discharge_date&quot;         &quot;death_time&quot;             &quot;aneinfo_position&quot;      
+## [19] &quot;aneinfo_anetype&quot;        &quot;aneinfo_em&quot;             &quot;preop_hb&quot;              
+## [22] &quot;preop_hct&quot;              &quot;preop_plt&quot;              &quot;preop_bun&quot;             
+## [25] &quot;preop_cr&quot;               &quot;preop_pt&quot;               &quot;preop_ptt&quot;             
+## [28] &quot;preop_alb&quot;              &quot;preop_got&quot;              &quot;preop_gpt&quot;             
+## [31] &quot;preop_na&quot;               &quot;preop_k&quot;                &quot;preop_tnt&quot;             
+## [34] &quot;preop_tni&quot;              &quot;preop_sat&quot;              &quot;preop_glu&quot;             
+## [37] &quot;preop_be&quot;               &quot;preop_pao2&quot;             &quot;preop_paco2&quot;           
+## [40] &quot;preop_hco3&quot;             &quot;preop_ph&quot;               &quot;postop_cr_peak1&quot;       
+## [43] &quot;postop_cr_peak2&quot;        &quot;postop_cr_peak3&quot;        &quot;postop_cr_peak7&quot;       
+## [46] &quot;postop_tnt_peak30&quot;      &quot;postop_tni_peak30&quot;      &quot;premedi_htn&quot;           
+## [49] &quot;premedi_dm&quot;             &quot;premedi_tb&quot;             &quot;premedi_liver_dz&quot;      
+## [52] &quot;premedi_copd&quot;           &quot;premedi_asthma&quot;         &quot;premedi_heart_dz&quot;      
+## [55] &quot;premedi_thyroid_dz&quot;     &quot;premedi_renal_dz&quot;       &quot;premedi_hematologic_dz&quot;
+## [58] &quot;premedi_vascular_dz&quot;    &quot;premedi_neurologic_dz&quot;  &quot;premedi_other_dz&quot;      
+## [61] &quot;premedi_pregnancy&quot;      &quot;premedi_obesity&quot;        &quot;premedi_smoking&quot;       
+## [64] &quot;premedi_smoking_dose&quot;   &quot;premed_em&quot;              &quot;premedi_asa&quot;           
+## [67] &quot;nurse_htn&quot;              &quot;nurse_dm&quot;               &quot;nurse_tb&quot;              
+## [70] &quot;nurse_liver_dz&quot;         &quot;nurse_other_dz&quot;         &quot;sum_uo&quot;                
+## [73] &quot;sum_ebl&quot;                &quot;sum_crystalloid&quot;        &quot;sum_colloid&quot;           
+## [76] &quot;sum_fluid&quot;              &quot;sum_rbc&quot;                &quot;sum_ffp&quot;               
+## [79] &quot;sum_plt&quot;                &quot;sum_cryo&quot;               &quot;preop_egfr&quot;</code></pre>
+<pre class="r"><code>ct &lt;- vector(mode = &#39;character&#39;)
+for (i in nms){
+  ct &lt;- c(ct, if (grepl(&#39;^em_yn|premedi_smoking|nurse_|caseid&#39;, i)){
+  &#39;text&#39;
+  } else if (grepl(&#39;postop_tnt_peak30|preop_tnt&#39;, i)) { # very high missing rate for these columns anyway
+    &#39;text&#39;
+  } else {&#39;guess&#39;})
+}
+
+cases &lt;- read_excel(&#39;data/cases.xlsx&#39;, col_types = ct) %&gt;% 
+  mutate(em_yn = as.factor(em_yn),
+         fileid = gsub(&#39;.vital&#39;, &#39;&#39;, fileid))</code></pre>
+<pre><code>## Warning in read_fun(path = enc2native(normalizePath(path)), sheet_i = sheet, :
+## Coercing text to numeric in CB1652 / R1652C80: &#39;6&#39;</code></pre>
+<pre><code>## Warning in read_fun(path = enc2native(normalizePath(path)), sheet_i = sheet, :
+## Coercing text to numeric in CB10686 / R10686C80: &#39;3&#39;</code></pre>
+<pre><code>## Warning in read_fun(path = enc2native(normalizePath(path)), sheet_i = sheet, :
+## Coercing text to numeric in CB12593 / R12593C80: &#39;8&#39;</code></pre>
+<pre><code>## Warning in read_fun(path = enc2native(normalizePath(path)), sheet_i = sheet, :
+## Coercing text to numeric in CB15318 / R15318C80: &#39;5&#39;</code></pre>
+<pre><code>## Warning in read_fun(path = enc2native(normalizePath(path)), sheet_i = sheet, :
+## Coercing text to numeric in CB15479 / R15479C80: &#39;10&#39;</code></pre>
+<pre><code>## Warning in read_fun(path = enc2native(normalizePath(path)), sheet_i = sheet, :
+## Coercing text to numeric in CB19909 / R19909C80: &#39;12&#39;</code></pre>
+<pre><code>## Warning in read_fun(path = enc2native(normalizePath(path)), sheet_i = sheet, :
+## Coercing text to numeric in CB20062 / R20062C80: &#39;12&#39;</code></pre>
+<pre><code>## Warning in read_fun(path = enc2native(normalizePath(path)), sheet_i = sheet, :
+## Coercing text to numeric in CB30158 / R30158C80: &#39;10&#39;</code></pre>
+<pre><code>## Warning in read_fun(path = enc2native(normalizePath(path)), sheet_i = sheet, :
+## Coercing text to numeric in CB34824 / R34824C80: &#39;10&#39;</code></pre>
+<pre><code>## Warning in read_fun(path = enc2native(normalizePath(path)), sheet_i = sheet, :
+## Coercing text to numeric in CB46837 / R46837C80: &#39;10&#39;</code></pre>
+<pre class="r"><code># cases &lt;- readr::read_csv(&#39;data/cases.xlsx&#39;)
 # case_deets &lt;- read_excel(&#39;data/cases-detail.xlsx&#39;)
 # labs &lt;- read_excel(&#39;data/labs.xlsx&#39;)
-tf &lt;- read_excel(&#39;data/tf.xlsx&#39;)</code></pre>
+tf &lt;- read_excel(&#39;data/tf.xlsx&#39;) %&gt;% 
+  mutate(fileid = gsub(&#39;.vital&#39;, &#39;&#39;, fileid)) %&gt;% 
+  distinct() # there are some duplicated rows in tf
+skimr::skim(tf)</code></pre>
+<table>
+<caption>Data summary</caption>
+<tbody>
+<tr class="odd">
+<td align="left">Name</td>
+<td align="left">tf</td>
+</tr>
+<tr class="even">
+<td align="left">Number of rows</td>
+<td align="left">37555</td>
+</tr>
+<tr class="odd">
+<td align="left">Number of columns</td>
+<td align="left">3</td>
+</tr>
+<tr class="even">
+<td align="left">_______________________</td>
+<td align="left"></td>
+</tr>
+<tr class="odd">
+<td align="left">Column type frequency:</td>
+<td align="left"></td>
+</tr>
+<tr class="even">
+<td align="left">character</td>
+<td align="left">2</td>
+</tr>
+<tr class="odd">
+<td align="left">POSIXct</td>
+<td align="left">1</td>
+</tr>
+<tr class="even">
+<td align="left">________________________</td>
+<td align="left"></td>
+</tr>
+<tr class="odd">
+<td align="left">Group variables</td>
+<td align="left">None</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Variable type: character</strong></p>
+<table>
+<thead>
+<tr class="header">
+<th align="left">skim_variable</th>
+<th align="right">n_missing</th>
+<th align="right">complete_rate</th>
+<th align="right">min</th>
+<th align="right">max</th>
+<th align="right">empty</th>
+<th align="right">n_unique</th>
+<th align="right">whitespace</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">fileid</td>
+<td align="right">0</td>
+<td align="right">1.00</td>
+<td align="right">16</td>
+<td align="right">18</td>
+<td align="right">0</td>
+<td align="right">2939</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">val</td>
+<td align="right">20768</td>
+<td align="right">0.45</td>
+<td align="right">1</td>
+<td align="right">19</td>
+<td align="right">0</td>
+<td align="right">526</td>
+<td align="right">0</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Variable type: POSIXct</strong></p>
+<table>
+<thead>
+<tr class="header">
+<th align="left">skim_variable</th>
+<th align="right">n_missing</th>
+<th align="right">complete_rate</th>
+<th align="left">min</th>
+<th align="left">max</th>
+<th align="left">median</th>
+<th align="right">n_unique</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">dt</td>
+<td align="right">0</td>
+<td align="right">1</td>
+<td align="left">2016-06-10 01:55:00</td>
+<td align="left">2019-11-29 17:35:00</td>
+<td align="left">2018-07-23 14:30:00</td>
+<td align="right">33895</td>
+</tr>
+</tbody>
+</table>
+<pre class="r"><code>skimr::skim(cases)</code></pre>
+<table>
+<caption>Data summary</caption>
+<tbody>
+<tr class="odd">
+<td align="left">Name</td>
+<td align="left">cases</td>
+</tr>
+<tr class="even">
+<td align="left">Number of rows</td>
+<td align="left">50934</td>
+</tr>
+<tr class="odd">
+<td align="left">Number of columns</td>
+<td align="left">81</td>
+</tr>
+<tr class="even">
+<td align="left">_______________________</td>
+<td align="left"></td>
+</tr>
+<tr class="odd">
+<td align="left">Column type frequency:</td>
+<td align="left"></td>
+</tr>
+<tr class="even">
+<td align="left">character</td>
+<td align="left">43</td>
+</tr>
+<tr class="odd">
+<td align="left">factor</td>
+<td align="left">1</td>
+</tr>
+<tr class="even">
+<td align="left">numeric</td>
+<td align="left">31</td>
+</tr>
+<tr class="odd">
+<td align="left">POSIXct</td>
+<td align="left">6</td>
+</tr>
+<tr class="even">
+<td align="left">________________________</td>
+<td align="left"></td>
+</tr>
+<tr class="odd">
+<td align="left">Group variables</td>
+<td align="left">None</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Variable type: character</strong></p>
+<table>
+<thead>
+<tr class="header">
+<th align="left">skim_variable</th>
+<th align="right">n_missing</th>
+<th align="right">complete_rate</th>
+<th align="right">min</th>
+<th align="right">max</th>
+<th align="right">empty</th>
+<th align="right">n_unique</th>
+<th align="right">whitespace</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">fileid</td>
+<td align="right">0</td>
+<td align="right">1.00</td>
+<td align="right">1</td>
+<td align="right">18</td>
+<td align="right">0</td>
+<td align="right">49499</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">caseid</td>
+<td align="right">44546</td>
+<td align="right">0.13</td>
+<td align="right">1</td>
+<td align="right">4</td>
+<td align="right">0</td>
+<td align="right">6387</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">opname</td>
+<td align="right">0</td>
+<td align="right">1.00</td>
+<td align="right">2</td>
+<td align="right">255</td>
+<td align="right">0</td>
+<td align="right">21905</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">sex</td>
+<td align="right">0</td>
+<td align="right">1.00</td>
+<td align="right">1</td>
+<td align="right">1</td>
+<td align="right">0</td>
+<td align="right">2</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">dept</td>
+<td align="right">0</td>
+<td align="right">1.00</td>
+<td align="right">2</td>
+<td align="right">3</td>
+<td align="right">0</td>
+<td align="right">16</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">death_time</td>
+<td align="right">50198</td>
+<td align="right">0.01</td>
+<td align="right">19</td>
+<td align="right">19</td>
+<td align="right">0</td>
+<td align="right">505</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">aneinfo_position</td>
+<td align="right">2253</td>
+<td align="right">0.96</td>
+<td align="right">1</td>
+<td align="right">32</td>
+<td align="right">0</td>
+<td align="right">175</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">aneinfo_anetype</td>
+<td align="right">2019</td>
+<td align="right">0.96</td>
+<td align="right">3</td>
+<td align="right">14</td>
+<td align="right">0</td>
+<td align="right">7</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">aneinfo_em</td>
+<td align="right">7017</td>
+<td align="right">0.86</td>
+<td align="right">1</td>
+<td align="right">1</td>
+<td align="right">0</td>
+<td align="right">2</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">preop_na</td>
+<td align="right">303</td>
+<td align="right">0.99</td>
+<td align="right">1</td>
+<td align="right">3</td>
+<td align="right">0</td>
+<td align="right">48</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">preop_k</td>
+<td align="right">303</td>
+<td align="right">0.99</td>
+<td align="right">1</td>
+<td align="right">3</td>
+<td align="right">0</td>
+<td align="right">52</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">preop_tnt</td>
+<td align="right">50892</td>
+<td align="right">0.00</td>
+<td align="right">4</td>
+<td align="right">5</td>
+<td align="right">0</td>
+<td align="right">23</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">preop_tni</td>
+<td align="right">47553</td>
+<td align="right">0.07</td>
+<td align="right">1</td>
+<td align="right">5</td>
+<td align="right">0</td>
+<td align="right">195</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">preop_sat</td>
+<td align="right">47164</td>
+<td align="right">0.07</td>
+<td align="right">1</td>
+<td align="right">5</td>
+<td align="right">0</td>
+<td align="right">352</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">preop_be</td>
+<td align="right">47164</td>
+<td align="right">0.07</td>
+<td align="right">1</td>
+<td align="right">5</td>
+<td align="right">0</td>
+<td align="right">203</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">preop_pao2</td>
+<td align="right">47163</td>
+<td align="right">0.07</td>
+<td align="right">1</td>
+<td align="right">5</td>
+<td align="right">0</td>
+<td align="right">526</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">preop_paco2</td>
+<td align="right">47163</td>
+<td align="right">0.07</td>
+<td align="right">1</td>
+<td align="right">5</td>
+<td align="right">0</td>
+<td align="right">995</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">preop_hco3</td>
+<td align="right">47163</td>
+<td align="right">0.07</td>
+<td align="right">1</td>
+<td align="right">4</td>
+<td align="right">0</td>
+<td align="right">183</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">preop_ph</td>
+<td align="right">47163</td>
+<td align="right">0.07</td>
+<td align="right">1</td>
+<td align="right">5</td>
+<td align="right">0</td>
+<td align="right">336</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">postop_cr_peak1</td>
+<td align="right">24556</td>
+<td align="right">0.52</td>
+<td align="right">1</td>
+<td align="right">5</td>
+<td align="right">0</td>
+<td align="right">989</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">postop_cr_peak2</td>
+<td align="right">18727</td>
+<td align="right">0.63</td>
+<td align="right">1</td>
+<td align="right">5</td>
+<td align="right">0</td>
+<td align="right">1016</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">postop_cr_peak3</td>
+<td align="right">18330</td>
+<td align="right">0.64</td>
+<td align="right">1</td>
+<td align="right">5</td>
+<td align="right">0</td>
+<td align="right">1033</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">postop_cr_peak7</td>
+<td align="right">17808</td>
+<td align="right">0.65</td>
+<td align="right">1</td>
+<td align="right">5</td>
+<td align="right">0</td>
+<td align="right">1082</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">postop_tnt_peak30</td>
+<td align="right">50793</td>
+<td align="right">0.00</td>
+<td align="right">1</td>
+<td align="right">4</td>
+<td align="right">0</td>
+<td align="right">15</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">postop_tni_peak30</td>
+<td align="right">44655</td>
+<td align="right">0.12</td>
+<td align="right">1</td>
+<td align="right">6</td>
+<td align="right">0</td>
+<td align="right">632</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">premedi_pregnancy</td>
+<td align="right">50731</td>
+<td align="right">0.00</td>
+<td align="right">1</td>
+<td align="right">1</td>
+<td align="right">0</td>
+<td align="right">2</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">premedi_obesity</td>
+<td align="right">50595</td>
+<td align="right">0.01</td>
+<td align="right">1</td>
+<td align="right">1</td>
+<td align="right">0</td>
+<td align="right">2</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">premedi_smoking</td>
+<td align="right">50933</td>
+<td align="right">0.00</td>
+<td align="right">1</td>
+<td align="right">1</td>
+<td align="right">0</td>
+<td align="right">1</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">premedi_smoking_dose</td>
+<td align="right">50933</td>
+<td align="right">0.00</td>
+<td align="right">2</td>
+<td align="right">2</td>
+<td align="right">0</td>
+<td align="right">1</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">premed_em</td>
+<td align="right">12162</td>
+<td align="right">0.76</td>
+<td align="right">1</td>
+<td align="right">1</td>
+<td align="right">0</td>
+<td align="right">2</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">nurse_htn</td>
+<td align="right">50934</td>
+<td align="right">0.00</td>
+<td align="right">NA</td>
+<td align="right">NA</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">nurse_dm</td>
+<td align="right">50934</td>
+<td align="right">0.00</td>
+<td align="right">NA</td>
+<td align="right">NA</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">nurse_tb</td>
+<td align="right">50934</td>
+<td align="right">0.00</td>
+<td align="right">NA</td>
+<td align="right">NA</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">nurse_liver_dz</td>
+<td align="right">50934</td>
+<td align="right">0.00</td>
+<td align="right">NA</td>
+<td align="right">NA</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">nurse_other_dz</td>
+<td align="right">50934</td>
+<td align="right">0.00</td>
+<td align="right">NA</td>
+<td align="right">NA</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">sum_uo</td>
+<td align="right">0</td>
+<td align="right">1.00</td>
+<td align="right">1</td>
+<td align="right">5</td>
+<td align="right">0</td>
+<td align="right">672</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">sum_ebl</td>
+<td align="right">0</td>
+<td align="right">1.00</td>
+<td align="right">1</td>
+<td align="right">6</td>
+<td align="right">0</td>
+<td align="right">419</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">sum_crystalloid</td>
+<td align="right">0</td>
+<td align="right">1.00</td>
+<td align="right">1</td>
+<td align="right">7</td>
+<td align="right">0</td>
+<td align="right">548</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">sum_colloid</td>
+<td align="right">0</td>
+<td align="right">1.00</td>
+<td align="right">1</td>
+<td align="right">4</td>
+<td align="right">0</td>
+<td align="right">105</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">sum_fluid</td>
+<td align="right">0</td>
+<td align="right">1.00</td>
+<td align="right">1</td>
+<td align="right">5</td>
+<td align="right">0</td>
+<td align="right">638</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">sum_rbc</td>
+<td align="right">0</td>
+<td align="right">1.00</td>
+<td align="right">1</td>
+<td align="right">7</td>
+<td align="right">0</td>
+<td align="right">101</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">sum_ffp</td>
+<td align="right">0</td>
+<td align="right">1.00</td>
+<td align="right">1</td>
+<td align="right">4</td>
+<td align="right">0</td>
+<td align="right">56</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">sum_plt</td>
+<td align="right">0</td>
+<td align="right">1.00</td>
+<td align="right">1</td>
+<td align="right">7</td>
+<td align="right">0</td>
+<td align="right">16</td>
+<td align="right">0</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Variable type: factor</strong></p>
+<table>
+<thead>
+<tr class="header">
+<th align="left">skim_variable</th>
+<th align="right">n_missing</th>
+<th align="right">complete_rate</th>
+<th align="left">ordered</th>
+<th align="right">n_unique</th>
+<th align="left">top_counts</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">em_yn</td>
+<td align="right">47687</td>
+<td align="right">0.06</td>
+<td align="left">FALSE</td>
+<td align="right">2</td>
+<td align="left">N: 2821, Y: 426</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Variable type: numeric</strong></p>
+<table style="width:100%;">
+<colgroup>
+<col width="16%"></col>
+<col width="7%"></col>
+<col width="10%"></col>
+<col width="9%"></col>
+<col width="7%"></col>
+<col width="8%"></col>
+<col width="8%"></col>
+<col width="9%"></col>
+<col width="9%"></col>
+<col width="8%"></col>
+<col width="4%"></col>
+</colgroup>
+<thead>
+<tr class="header">
+<th align="left">skim_variable</th>
+<th align="right">n_missing</th>
+<th align="right">complete_rate</th>
+<th align="right">mean</th>
+<th align="right">sd</th>
+<th align="right">p0</th>
+<th align="right">p25</th>
+<th align="right">p50</th>
+<th align="right">p75</th>
+<th align="right">p100</th>
+<th align="left">hist</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">opid</td>
+<td align="right">0</td>
+<td align="right">1.00</td>
+<td align="right">181785924.28</td>
+<td align="right">9056997.30</td>
+<td align="right">160610074.0</td>
+<td align="right">1.80131e+08</td>
+<td align="right">181004077.50</td>
+<td align="right">190509108.25</td>
+<td align="right">1.91214e+08</td>
+<td align="left">▂▃▁▇▇</td>
+</tr>
+<tr class="even">
+<td align="left">age</td>
+<td align="right">0</td>
+<td align="right">1.00</td>
+<td align="right">57.05</td>
+<td align="right">15.77</td>
+<td align="right">0.0</td>
+<td align="right">4.66000e+01</td>
+<td align="right">59.00</td>
+<td align="right">69.00</td>
+<td align="right">9.78700e+01</td>
+<td align="left">▁▂▆▇▁</td>
+</tr>
+<tr class="odd">
+<td align="left">weight</td>
+<td align="right">0</td>
+<td align="right">1.00</td>
+<td align="right">62.40</td>
+<td align="right">15.49</td>
+<td align="right">-2.0</td>
+<td align="right">5.45500e+01</td>
+<td align="right">62.00</td>
+<td align="right">70.50</td>
+<td align="right">1.83000e+02</td>
+<td align="left">▁▇▂▁▁</td>
+</tr>
+<tr class="even">
+<td align="left">height</td>
+<td align="right">0</td>
+<td align="right">1.00</td>
+<td align="right">160.05</td>
+<td align="right">75.47</td>
+<td align="right">-1.0</td>
+<td align="right">1.55600e+02</td>
+<td align="right">161.60</td>
+<td align="right">168.20</td>
+<td align="right">1.59340e+04</td>
+<td align="left">▇▁▁▁▁</td>
+</tr>
+<tr class="odd">
+<td align="left">preop_hb</td>
+<td align="right">181</td>
+<td align="right">1.00</td>
+<td align="right">12.81</td>
+<td align="right">1.98</td>
+<td align="right">0.0</td>
+<td align="right">1.17000e+01</td>
+<td align="right">13.00</td>
+<td align="right">14.10</td>
+<td align="right">2.04000e+01</td>
+<td align="left">▁▁▅▇▁</td>
+</tr>
+<tr class="even">
+<td align="left">preop_hct</td>
+<td align="right">182</td>
+<td align="right">1.00</td>
+<td align="right">38.64</td>
+<td align="right">5.53</td>
+<td align="right">0.0</td>
+<td align="right">3.58000e+01</td>
+<td align="right">39.10</td>
+<td align="right">42.10</td>
+<td align="right">6.50000e+01</td>
+<td align="left">▁▁▇▇▁</td>
+</tr>
+<tr class="odd">
+<td align="left">preop_plt</td>
+<td align="right">188</td>
+<td align="right">1.00</td>
+<td align="right">242.27</td>
+<td align="right">79.69</td>
+<td align="right">0.0</td>
+<td align="right">1.95000e+02</td>
+<td align="right">237.00</td>
+<td align="right">283.00</td>
+<td align="right">1.26300e+03</td>
+<td align="left">▇▅▁▁▁</td>
+</tr>
+<tr class="even">
+<td align="left">preop_bun</td>
+<td align="right">238</td>
+<td align="right">1.00</td>
+<td align="right">15.96</td>
+<td align="right">9.35</td>
+<td align="right">0.0</td>
+<td align="right">1.10000e+01</td>
+<td align="right">14.00</td>
+<td align="right">18.00</td>
+<td align="right">1.61000e+02</td>
+<td align="left">▇▁▁▁▁</td>
+</tr>
+<tr class="odd">
+<td align="left">preop_cr</td>
+<td align="right">210</td>
+<td align="right">1.00</td>
+<td align="right">2.05</td>
+<td align="right">10.64</td>
+<td align="right">0.0</td>
+<td align="right">6.60000e-01</td>
+<td align="right">0.77</td>
+<td align="right">0.93</td>
+<td align="right">1.52000e+02</td>
+<td align="left">▇▁▁▁▁</td>
+</tr>
+<tr class="even">
+<td align="left">preop_pt</td>
+<td align="right">306</td>
+<td align="right">0.99</td>
+<td align="right">103.18</td>
+<td align="right">15.68</td>
+<td align="right">0.0</td>
+<td align="right">9.60000e+01</td>
+<td align="right">104.00</td>
+<td align="right">112.00</td>
+<td align="right">1.82000e+02</td>
+<td align="left">▁▁▇▅▁</td>
+</tr>
+<tr class="odd">
+<td align="left">preop_ptt</td>
+<td align="right">331</td>
+<td align="right">0.99</td>
+<td align="right">31.51</td>
+<td align="right">6.17</td>
+<td align="right">0.0</td>
+<td align="right">2.91000e+01</td>
+<td align="right">31.10</td>
+<td align="right">33.30</td>
+<td align="right">4.00000e+02</td>
+<td align="left">▇▁▁▁▁</td>
+</tr>
+<tr class="even">
+<td align="left">preop_alb</td>
+<td align="right">255</td>
+<td align="right">0.99</td>
+<td align="right">4.06</td>
+<td align="right">0.54</td>
+<td align="right">0.0</td>
+<td align="right">3.90000e+00</td>
+<td align="right">4.20</td>
+<td align="right">4.40</td>
+<td align="right">5.80000e+00</td>
+<td align="left">▁▁▁▇▁</td>
+</tr>
+<tr class="odd">
+<td align="left">preop_got</td>
+<td align="right">244</td>
+<td align="right">1.00</td>
+<td align="right">27.22</td>
+<td align="right">129.39</td>
+<td align="right">0.0</td>
+<td align="right">1.70000e+01</td>
+<td align="right">21.00</td>
+<td align="right">26.00</td>
+<td align="right">1.52160e+04</td>
+<td align="left">▇▁▁▁▁</td>
+</tr>
+<tr class="even">
+<td align="left">preop_gpt</td>
+<td align="right">245</td>
+<td align="right">1.00</td>
+<td align="right">25.05</td>
+<td align="right">63.85</td>
+<td align="right">0.0</td>
+<td align="right">1.30000e+01</td>
+<td align="right">18.00</td>
+<td align="right">27.00</td>
+<td align="right">5.37900e+03</td>
+<td align="left">▇▁▁▁▁</td>
+</tr>
+<tr class="odd">
+<td align="left">preop_glu</td>
+<td align="right">664</td>
+<td align="right">0.99</td>
+<td align="right">115.19</td>
+<td align="right">41.86</td>
+<td align="right">0.0</td>
+<td align="right">9.40000e+01</td>
+<td align="right">103.00</td>
+<td align="right">122.00</td>
+<td align="right">8.04000e+02</td>
+<td align="left">▇▁▁▁▁</td>
+</tr>
+<tr class="even">
+<td align="left">premedi_htn</td>
+<td align="right">0</td>
+<td align="right">1.00</td>
+<td align="right">0.13</td>
+<td align="right">0.34</td>
+<td align="right">0.0</td>
+<td align="right">0.00000e+00</td>
+<td align="right">0.00</td>
+<td align="right">0.00</td>
+<td align="right">1.00000e+00</td>
+<td align="left">▇▁▁▁▁</td>
+</tr>
+<tr class="odd">
+<td align="left">premedi_dm</td>
+<td align="right">0</td>
+<td align="right">1.00</td>
+<td align="right">0.07</td>
+<td align="right">0.25</td>
+<td align="right">0.0</td>
+<td align="right">0.00000e+00</td>
+<td align="right">0.00</td>
+<td align="right">0.00</td>
+<td align="right">1.00000e+00</td>
+<td align="left">▇▁▁▁▁</td>
+</tr>
+<tr class="even">
+<td align="left">premedi_tb</td>
+<td align="right">0</td>
+<td align="right">1.00</td>
+<td align="right">0.01</td>
+<td align="right">0.10</td>
+<td align="right">0.0</td>
+<td align="right">0.00000e+00</td>
+<td align="right">0.00</td>
+<td align="right">0.00</td>
+<td align="right">1.00000e+00</td>
+<td align="left">▇▁▁▁▁</td>
+</tr>
+<tr class="odd">
+<td align="left">premedi_liver_dz</td>
+<td align="right">0</td>
+<td align="right">1.00</td>
+<td align="right">0.04</td>
+<td align="right">0.19</td>
+<td align="right">0.0</td>
+<td align="right">0.00000e+00</td>
+<td align="right">0.00</td>
+<td align="right">0.00</td>
+<td align="right">1.00000e+00</td>
+<td align="left">▇▁▁▁▁</td>
+</tr>
+<tr class="even">
+<td align="left">premedi_copd</td>
+<td align="right">0</td>
+<td align="right">1.00</td>
+<td align="right">0.01</td>
+<td align="right">0.08</td>
+<td align="right">0.0</td>
+<td align="right">0.00000e+00</td>
+<td align="right">0.00</td>
+<td align="right">0.00</td>
+<td align="right">1.00000e+00</td>
+<td align="left">▇▁▁▁▁</td>
+</tr>
+<tr class="odd">
+<td align="left">premedi_asthma</td>
+<td align="right">0</td>
+<td align="right">1.00</td>
+<td align="right">0.01</td>
+<td align="right">0.08</td>
+<td align="right">0.0</td>
+<td align="right">0.00000e+00</td>
+<td align="right">0.00</td>
+<td align="right">0.00</td>
+<td align="right">1.00000e+00</td>
+<td align="left">▇▁▁▁▁</td>
+</tr>
+<tr class="even">
+<td align="left">premedi_heart_dz</td>
+<td align="right">0</td>
+<td align="right">1.00</td>
+<td align="right">0.04</td>
+<td align="right">0.19</td>
+<td align="right">0.0</td>
+<td align="right">0.00000e+00</td>
+<td align="right">0.00</td>
+<td align="right">0.00</td>
+<td align="right">1.00000e+00</td>
+<td align="left">▇▁▁▁▁</td>
+</tr>
+<tr class="odd">
+<td align="left">premedi_thyroid_dz</td>
+<td align="right">0</td>
+<td align="right">1.00</td>
+<td align="right">0.03</td>
+<td align="right">0.17</td>
+<td align="right">0.0</td>
+<td align="right">0.00000e+00</td>
+<td align="right">0.00</td>
+<td align="right">0.00</td>
+<td align="right">1.00000e+00</td>
+<td align="left">▇▁▁▁▁</td>
+</tr>
+<tr class="even">
+<td align="left">premedi_renal_dz</td>
+<td align="right">0</td>
+<td align="right">1.00</td>
+<td align="right">0.03</td>
+<td align="right">0.17</td>
+<td align="right">0.0</td>
+<td align="right">0.00000e+00</td>
+<td align="right">0.00</td>
+<td align="right">0.00</td>
+<td align="right">1.00000e+00</td>
+<td align="left">▇▁▁▁▁</td>
+</tr>
+<tr class="odd">
+<td align="left">premedi_hematologic_dz</td>
+<td align="right">0</td>
+<td align="right">1.00</td>
+<td align="right">0.01</td>
+<td align="right">0.08</td>
+<td align="right">0.0</td>
+<td align="right">0.00000e+00</td>
+<td align="right">0.00</td>
+<td align="right">0.00</td>
+<td align="right">1.00000e+00</td>
+<td align="left">▇▁▁▁▁</td>
+</tr>
+<tr class="even">
+<td align="left">premedi_vascular_dz</td>
+<td align="right">0</td>
+<td align="right">1.00</td>
+<td align="right">0.02</td>
+<td align="right">0.14</td>
+<td align="right">0.0</td>
+<td align="right">0.00000e+00</td>
+<td align="right">0.00</td>
+<td align="right">0.00</td>
+<td align="right">1.00000e+00</td>
+<td align="left">▇▁▁▁▁</td>
+</tr>
+<tr class="odd">
+<td align="left">premedi_neurologic_dz</td>
+<td align="right">0</td>
+<td align="right">1.00</td>
+<td align="right">0.03</td>
+<td align="right">0.17</td>
+<td align="right">0.0</td>
+<td align="right">0.00000e+00</td>
+<td align="right">0.00</td>
+<td align="right">0.00</td>
+<td align="right">1.00000e+00</td>
+<td align="left">▇▁▁▁▁</td>
+</tr>
+<tr class="even">
+<td align="left">premedi_other_dz</td>
+<td align="right">0</td>
+<td align="right">1.00</td>
+<td align="right">0.13</td>
+<td align="right">0.34</td>
+<td align="right">0.0</td>
+<td align="right">0.00000e+00</td>
+<td align="right">0.00</td>
+<td align="right">0.00</td>
+<td align="right">1.00000e+00</td>
+<td align="left">▇▁▁▁▁</td>
+</tr>
+<tr class="odd">
+<td align="left">premedi_asa</td>
+<td align="right">1891</td>
+<td align="right">0.96</td>
+<td align="right">1.87</td>
+<td align="right">0.65</td>
+<td align="right">1.0</td>
+<td align="right">1.00000e+00</td>
+<td align="right">2.00</td>
+<td align="right">2.00</td>
+<td align="right">6.00000e+00</td>
+<td align="left">▇▁▁▁▁</td>
+</tr>
+<tr class="even">
+<td align="left">sum_cryo</td>
+<td align="right">0</td>
+<td align="right">1.00</td>
+<td align="right">0.00</td>
+<td align="right">0.13</td>
+<td align="right">0.0</td>
+<td align="right">0.00000e+00</td>
+<td align="right">0.00</td>
+<td align="right">0.00</td>
+<td align="right">1.20000e+01</td>
+<td align="left">▇▁▁▁▁</td>
+</tr>
+<tr class="odd">
+<td align="left">preop_egfr</td>
+<td align="right">0</td>
+<td align="right">1.00</td>
+<td align="right">82.89</td>
+<td align="right">26.95</td>
+<td align="right">0.4</td>
+<td align="right">7.18000e+01</td>
+<td align="right">86.00</td>
+<td align="right">98.00</td>
+<td align="right">4.19800e+02</td>
+<td align="left">▇▇▁▁▁</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Variable type: POSIXct</strong></p>
+<table style="width:100%;">
+<colgroup>
+<col width="13%"></col>
+<col width="9%"></col>
+<col width="12%"></col>
+<col width="18%"></col>
+<col width="18%"></col>
+<col width="18%"></col>
+<col width="8%"></col>
+</colgroup>
+<thead>
+<tr class="header">
+<th align="left">skim_variable</th>
+<th align="right">n_missing</th>
+<th align="right">complete_rate</th>
+<th align="left">min</th>
+<th align="left">max</th>
+<th align="left">median</th>
+<th align="right">n_unique</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">orin</td>
+<td align="right">0</td>
+<td align="right">1.00</td>
+<td align="left">2016-06-10 00:01:00</td>
+<td align="left">2019-12-14 16:44:00</td>
+<td align="left">2018-10-04 13:21:00</td>
+<td align="right">41032</td>
+</tr>
+<tr class="even">
+<td align="left">orout</td>
+<td align="right">6</td>
+<td align="right">1.00</td>
+<td align="left">2016-06-10 05:00:00</td>
+<td align="left">2019-12-14 23:36:00</td>
+<td align="left">2018-10-04 16:30:00</td>
+<td align="right">45201</td>
+</tr>
+<tr class="odd">
+<td align="left">opstart</td>
+<td align="right">1332</td>
+<td align="right">0.97</td>
+<td align="left">2016-06-10 01:10:00</td>
+<td align="left">2019-12-14 17:35:00</td>
+<td align="left">2018-09-28 15:07:00</td>
+<td align="right">39694</td>
+</tr>
+<tr class="even">
+<td align="left">opend</td>
+<td align="right">1333</td>
+<td align="right">0.97</td>
+<td align="left">2016-06-10 04:50:00</td>
+<td align="left">3518-09-11 12:30:00</td>
+<td align="left">2018-09-28 17:35:00</td>
+<td align="right">45091</td>
+</tr>
+<tr class="odd">
+<td align="left">admission_date</td>
+<td align="right">58</td>
+<td align="right">1.00</td>
+<td align="left">2016-01-24 00:00:00</td>
+<td align="left">2019-12-14 00:00:00</td>
+<td align="left">2018-09-30 00:00:00</td>
+<td align="right">1273</td>
+</tr>
+<tr class="even">
+<td align="left">discharge_date</td>
+<td align="right">280</td>
+<td align="right">0.99</td>
+<td align="left">2016-06-11 00:00:00</td>
+<td align="left">2020-01-02 00:00:00</td>
+<td align="left">2018-10-12 00:00:00</td>
+<td align="right">1299</td>
+</tr>
+</tbody>
+</table>
 <pre class="r"><code>massive_trans &lt;- tf %&gt;% 
   filter(grepl(&#39;#&#39;, val), # only consider rows with #
          !grepl(&#39;cont&#39;, val),
          !val %in% c(&#39; #&#39;, &#39;#!&#39;, &#39;#0316454&#39;, &#39;on #0&#39;)) %&gt;% 
-  mutate(fileid = gsub(&#39;.vital&#39;, &#39;&#39;, fileid),
-         val = gsub(&#39;[?()]&#39;, &#39;&#39;, val) %&gt;% 
+  mutate(val = gsub(&#39;[?()]&#39;, &#39;&#39;, val) %&gt;% 
            gsub(&#39;[~=]&#39;, &#39;-&#39;, .) %&gt;% 
            gsub(&#39;#9-`1&#39;, &#39;#9-12&#39;, .) %&gt;% # continuous transfusion for D1_160720_000512
            gsub(&#39;#1400cc&#39;, &#39;#1&#39;, .) %&gt;% # first transfusion of 400cc for D4_191003_082024
@@ -445,6 +1645,15 @@ tf &lt;- read_excel(&#39;data/tf.xlsx&#39;)</code></pre>
 ## 4 C4_190617_074206 2019-06-17 19:15:00 #35-36
 ## 5 C4_190617_074206 2019-06-17 20:30:00 #1-4  
 ## 6 C4_190617_074206 2019-06-17 21:10:00 #5-8</code></pre>
+<p>What about unordered like <code>A1_190215_132805</code>?</p>
+<pre><code>## # A tibble: 5 x 3
+##   fileid           dt                  val  
+##   &lt;chr&gt;            &lt;dttm&gt;              &lt;chr&gt;
+## 1 A1_190215_132805 2019-02-15 14:55:00 #1,#2
+## 2 A1_190215_132805 2019-02-15 15:20:00 #1   
+## 3 A1_190215_132805 2019-02-15 15:35:00 #2   
+## 4 A1_190215_132805 2019-02-15 16:30:00 #1   
+## 5 A1_190215_132805 2019-02-15 18:40:00 #4</code></pre>
 <pre class="r"><code># massive_trans %&gt;% filter(grepl(&#39;\\.&#39;, val)) %&gt;% select(-fileid)
 # Also needs to replace . with -
 massive_trans &lt;- massive_trans %&gt;% 
@@ -472,9 +1681,9 @@ for (patient in patients_to_check){
 
   for (i in 3:max(df_i$sep_val)){
     if ((i %in% df_i$sep_val) &amp;&amp; (sum(df_i$sep_val &lt;= (i-2)) &gt; 0)){
+      pre_idx &lt;- max(df_i$sep_val[df_i$sep_val &lt;= (i-2)])
 
       t2 &lt;- df_i %&gt;% filter(sep_val == i) %&gt;% pull(dt)
-      pre_idx &lt;- max(df_i$sep_val[df_i$sep_val &lt;= (i-2)])
       t1 &lt;- df_i %&gt;% filter(sep_val == pre_idx) %&gt;% pull(dt)
       diff_h &lt;- c(diff_h, difftime(t2, t1, units = &#39;hours&#39;) %&gt;% as.numeric())
     }
@@ -489,9 +1698,19 @@ table(phenotypes$had_mass_trans)</code></pre>
 <pre><code>## 
 ## FALSE  TRUE 
 ##  1915   674</code></pre>
-<pre class="r"><code>phenotypes %&gt;% readr::write_csv(&#39;data/mass-trans-phenotype.csv&#39;)</code></pre>
+<pre class="r"><code>phenotypes %&gt;% readr::write_csv(&#39;data/mass-trans-phenotype.csv&#39;)
+
+tf %&gt;% 
+  left_join(phenotypes, by = &#39;fileid&#39;) %&gt;% 
+  readr::write_csv(&#39;data/tf_pheno.csv&#39;)
+
+tf_pheno &lt;- tf %&gt;% 
+  left_join(phenotypes, by = &#39;fileid&#39;) 
+
+cases %&gt;% 
+  left_join(phenotypes, by = &#39;fileid&#39;) %&gt;% 
+  readr::write_csv(&#39;data/case_pheno.csv&#39;)</code></pre>
 <p>Check: <code>C1_191121_080136</code> should have massive transfusion. <code>D4_191003_082024</code> should not.</p>
-<pre class="r"><code>phenotypes %&gt;% filter(fileid %in% c(&#39;C1_191121_080136&#39;, &#39;D4_191003_082024&#39;))</code></pre>
 <pre><code>##             fileid had_mass_trans
 ## 1 C1_191121_080136           TRUE
 ## 2 D4_191003_082024          FALSE</code></pre>
