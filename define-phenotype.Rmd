@@ -68,14 +68,22 @@ massive_trans <- tf %>%
            gsub('#25-289', '#25-28', .) %>% # continuous transfusion for D1_180419_143306
            gsub('#35-#474', '#35-44', .) %>% # continuous transfusion for F4_160803_115114
            gsub('#9#10#11', '#9-11', .) %>% # D5_160901_172629
+           gsub('#3-1', '#1', .) %>% # C2_190905_073807, C5_190507_120916
+           gsub('#3-2', '#2', .) %>% # C2_190905_073807, C5_190507_120916, A2_180716_111059
+           gsub('#3-3', '#3', .) %>% # C2_190905_073807, C5_190507_120916, A2_180716_111059
            gsub('FMS|FM|CPB|B\\+|hold|on|fro| |resume|pheres', '', .))
 
 ```
 
+```{r}
+massive_trans %>% filter(val == '#3-3')
+```
 
 ## Special cases
-Will manually add `D5_190109_124529` from discussion with Seung Mi:
-"This patient started 1st, 2nd transfusion at 2019-01-09 13:40, and the 2nd transfusion ended at 2019-01-09 13:50. The 3rd-6th (4 RBC) transfusion started at 2019-01-09 13:55, and all of them ended at 2019-01-09 14:00. And the 7th-10th transfusion started at 2019-01-09 14:05, and all of them ended at 2019-01-09 14:10."
+
+### Manually checked for cases:
+
+`D5_190109_124529`: "This patient started 1st, 2nd transfusion at 2019-01-09 13:40, and the 2nd transfusion ended at 2019-01-09 13:50. The 3rd-6th (4 RBC) transfusion started at 2019-01-09 13:55, and all of them ended at 2019-01-09 14:00. And the 7th-10th transfusion started at 2019-01-09 14:05, and all of them ended at 2019-01-09 14:10."
 ```{r echo=FALSE}
 massive_trans %>% filter(fileid == 'D5_190109_124529')
 ```
@@ -90,17 +98,24 @@ The patient `C4_190617_074206` underwent `Spondylectomy : en-bloc spondylectomy,
 massive_trans %>% filter(fileid == 'C4_190617_074206')
 ```
 
-Let's add these to `mt_patients` for now:
-```{r}
-mt_patients <- c('D5_190109_124529', 'D1_180727_110744', 'C4_190617_074206')
+The following patients had massive transfusion: (see Seung Mi's google doc):
+```{r echo=FALSE}
+massive_trans %>% filter(fileid %in% c('A1_190215_132805', 'D1_170425_103512', 'F4_180827_112738'))
 ```
 
-On the other hand, only one row for `D4_191111_185103`:
+Let's add these to `mt_patients` for now:
+```{r}
+mt_patients <- c('D5_190109_124529', 'D1_180727_110744', 'C4_190617_074206', 'A1_190215_132805', 'D1_170425_103512', 'F4_180827_112738')
+```
+
+
+#### On the other hand: (non-cases)
+
+Only one row for `D4_191111_185103`:
 ```{r echo=FALSE}
 massive_trans %>% filter(fileid == 'D4_191111_185103')
 ```
 so this patient did not have massive transfusion.
-
 
 Also, `C4_190508_124038` does not have massive transfusion:
 ```{r echo=FALSE}
@@ -117,15 +132,23 @@ massive_trans %>% filter(fileid == 'D2_181018_132531')
 massive_trans %>% filter(fileid == 'A2_190228_141759')
 ```
 
+`A5_180504_073943` and `C4_190823_074052` and `D1_190905_201426` and `F2_180816_095513` didn't have massive transfusion: (see Seung Mi's google doc)
+```{r echo=FALSE}
+massive_trans %>% filter(fileid %in% c('A5_180504_073943', 'C4_190823_074052', 'D1_190905_201426', 'F2_180816_095513', 'D1_190905_201426'))
+```
+
+```{r}
+not_mt_patients <- c('D4_191111_185103', 'C4_190508_124038', 'D2_181018_132531', 'A2_190228_141759', 'A5_180504_073943', 'C4_190823_074052', 'D1_190905_2014260', 'F2_180816_095513', 'D1_190905_201426')
+```
+
+## Systematic analysis
 
 ```{r}
 # massive_trans %>% filter(grepl('\\.', val)) %>% select(-fileid)
 # Also needs to replace . with -
 massive_trans <- massive_trans %>% 
   filter(val != '#',
-         !fileid %in% c('D5_190109_124529', 'D1_180727_110744', 'D4_191111_185103', 'C4_190508_124038', 'C4_190617_074206'
-                        #, 'C2_190905_073807'
-                        )) %>% 
+         !fileid %in% c(not_mt_patients, mt_patients)) %>% 
   mutate(val = gsub('\\.', '-', val))
 
 massive_trans$conv_val <- sapply(massive_trans$val, get_num_list)
@@ -167,7 +190,7 @@ for (patient in patients_to_check){
 
 
 ```{r}
-phenotypes <- data.frame(fileid = unique(massive_trans$fileid)) %>% 
+phenotypes <- data.frame(fileid = unique(tf$fileid)) %>% 
   mutate(had_mass_trans = (fileid %in% mt_patients))
 
 table(phenotypes$had_mass_trans)
@@ -190,7 +213,7 @@ Check: `C1_191121_080136` should have massive transfusion.
 `D4_191003_082024` should not.
 
 ```{r echo=FALSE}
-phenotypes %>% filter(fileid %in% c('C1_191121_080136', 'D4_191003_082024'))
+phenotypes %>% filter(fileid %in% c('C1_191121_080136', 'D4_191003_082024', 'A2_180716_111059'))
 ```
 
 
@@ -258,3 +281,9 @@ why %>%
 ```
 `C2_190905_073807` did not have massive transfusion?
 Should we replace `#3-1`, `#3-2`, `#3-3` with `#1`, `#2`, `#3`?
+
+Check special cases:
+```{r}
+phenotypes %>% filter(fileid %in% c("A1_190215_132805", "A5_180504_073943", "C2_190905_073807", "C4_190823_074052", "D1_190905_201426", "D1_170425_103512", "F4_180827_112738", "F2_180816_095513"))
+```
+
