@@ -1,0 +1,145 @@
+---
+title: "Read data"
+output: html_document
+---
+
+```{r setup, message=FALSE, warning=FALSE}
+# install.packages("readxl")
+library(dplyr)
+library(readxl)
+library(stringr)
+library(lubridate)
+
+get_num_list <- function(val){
+  # reformat the `val` column, e.g. get_num_list('#3-#5') = '3,4,5'
+  if (grepl('-', val) || nrow(str_locate_all(val, '#')[[1]]) > 1){
+    return(str_split(val, '-|#') %>% 
+      unlist() %>%
+      gsub('#|,', '', .) %>% 
+      as.integer() %>% 
+      na.omit() %>% 
+      as.list() %>% 
+      do.call('seq.int', .) %>% 
+      paste(collapse = ','))
+  }
+  gsub('#', '', val)
+}
+```
+
+```{r}
+# cases <- read_excel('data/cases.xlsx')
+# case_deets <- read_excel('data/cases-detail.xlsx')
+# labs <- read_excel('data/labs.xlsx')
+tf <- read_excel('data/tf.xlsx')
+```
+
+
+```{r}
+massive_trans <- tf %>% 
+  filter(grepl('#', val), # only consider rows with #
+         !grepl('cont', val),
+         !val %in% c(' #', '#!', '#0316454', 'on #0')) %>% 
+  mutate(fileid = gsub('.vital', '', fileid),
+         val = gsub('[?()]', '', val) %>% 
+           gsub('[~=]', '-', .) %>% 
+           gsub('#9-`1', '#9-12', .) %>% # continuous transfusion for D1_160720_000512
+           gsub('#1400cc', '#1', .) %>% # first transfusion of 400cc for D4_191003_082024
+           gsub('#17,18,1', '#17,18', .) %>% # continuous transfusion for E5_180907_075903
+           gsub('#11,12,1', '#11,12', .) %>% # continuous transfusion for A4_180528_103731
+           gsub('#25-289', '#25-28', .) %>% # continuous transfusion for D1_180419_143306
+           gsub('#35-#474', '#35-44', .) %>% # continuous transfusion for F4_160803_115114
+           gsub('#9#10#11', '#9-11', .) %>% # D5_160901_172629
+           gsub('FMS|FM|CPB|B\\+|hold|on|fro| |resume|pheres', '', .))
+
+```
+
+Will manually add `D5_190109_124529` from discussion with Seung Mi:
+"This patient started 1st, 2nd transfusion at 2019-01-09 13:40, and the 2nd transfusion ended at 2019-01-09 13:50. The 3rd-6th (4 RBC) transfusion started at 2019-01-09 13:55, and all of them ended at 2019-01-09 14:00. And the 7th-10th transfusion started at 2019-01-09 14:05, and all of them ended at 2019-01-09 14:10."
+```{r echo=FALSE}
+massive_trans %>% filter(fileid == 'D5_190109_124529')
+```
+
+
+Similarly, `D1_180727_110744` has massive transfusion:
+```{r echo=FALSE}
+massive_trans %>% filter(fileid == 'D1_180727_110744')
+```
+
+On the other hand, only one row for `D4_191111_185103`:
+```{r echo=FALSE}
+massive_trans %>% filter(fileid == 'D4_191111_185103')
+```
+so this patient did not have massive transfusion.
+
+Also, `C4_190508_124038` does not have massive transfusion:
+```{r echo=FALSE}
+massive_trans %>% filter(fileid == 'C4_190508_124038')
+```
+
+`C4_190617_074206`... hmm... not sure what's going on here:
+```{r echo=FALSE}
+massive_trans %>% filter(fileid == 'C4_190617_074206')
+```
+
+```{r}
+# massive_trans %>% filter(grepl('\\.', val)) %>% select(-fileid)
+# Also needs to replace . with -
+massive_trans <- massive_trans %>% 
+  filter(val != '#',
+         !fileid %in% c('D5_190109_124529', 'D1_180727_110744', 'D4_191111_185103', 'C4_190508_124038', 'C4_190617_074206')) %>% 
+  mutate(val = gsub('\\.', '-', val))
+
+massive_trans$conv_val <- sapply(massive_trans$val, get_num_list)
+```
+
+
+```{r}
+all_trans <- massive_trans %>%
+  mutate(sep_val = conv_val) %>% 
+  tidyr::separate_rows(sep_val, sep = ',') %>%
+  mutate(sep_val = as.integer(sep_val))
+
+mt_patients <- massive_trans %>% 
+  subset(sapply(str_locate_all(massive_trans$conv_val, ','), nrow) > 1) %>% 
+  pull(fileid) %>% 
+  unique() %>% 
+  c('D5_190109_124529', 'D1_180727_110744')
+
+patients_to_check <- setdiff(unique(all_trans$fileid), mt_patients)
+
+for (patient in patients_to_check){
+  df_i <- all_trans %>% filter(fileid == patient)
+  diff_h <- vector()
+
+  for (i in 3:max(df_i$sep_val)){
+    if ((i %in% df_i$sep_val) && (sum(df_i$sep_val <= (i-2)) > 0)){
+
+      t2 <- df_i %>% filter(sep_val == i) %>% pull(dt)
+      pre_idx <- max(df_i$sep_val[df_i$sep_val <= (i-2)])
+      t1 <- df_i %>% filter(sep_val == pre_idx) %>% pull(dt)
+      diff_h <- c(diff_h, difftime(t2, t1, units = 'hours') %>% as.numeric())
+    }
+  }
+  if (any(diff_h < 1))
+    mt_patients <- c(mt_patients, patient)
+}
+
+```
+
+
+```{r}
+phenotypes <- data.frame(fileid = unique(massive_trans$fileid)) %>% 
+  mutate(had_mass_trans = (fileid %in% mt_patients))
+
+table(phenotypes$had_mass_trans)
+phenotypes %>% readr::write_csv('data/mass-trans-phenotype.csv')
+```
+
+
+Check: `C1_191121_080136` should have massive transfusion.
+`D4_191003_082024` should not.
+
+```{r echo=FALSE}
+phenotypes %>% filter(fileid %in% c('C1_191121_080136', 'D4_191003_082024'))
+```
+
