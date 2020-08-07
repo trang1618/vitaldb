@@ -8,7 +8,6 @@ output:
 
 ## Read in data and explore
 ```{r setup, message=FALSE, warning=FALSE}
-# install.packages("readxl")
 library(dplyr)
 library(readxl)
 library(stringr)
@@ -28,11 +27,11 @@ get_num_list <- function(val){
   }
   gsub('#', '', val)
 }
-# case_deets <- read_excel('data/cases-detail.xlsx')
-# labs <- read_excel('data/labs.xlsx')
 ```
 
-```{r warning=FALSE}
+```{r include=FALSE}
+# case_deets <- read_excel('data/cases-detail.xlsx')
+# labs <- read_excel('data/labs.xlsx')
 # nms <- names(read_excel('data/cases.xlsx', n_max = 0))
 # ct <- vector(mode = 'character')
 # for (i in nms){
@@ -58,17 +57,17 @@ get_num_list <- function(val){
 # skimr::skim(tf)
 # 
 # save(tf, ecg_patients, cases, file = 'data/gen-outcome.Rdata')
+```
 
+
+```{r warning=FALSE}
 load('data/gen-outcome.Rdata')
 manual_labs <- read_excel('data/SeungMi-manual-labels.xlsx') %>% 
   filter(!is.na(manual_start_time),
          fileid %in% ecg_patients)
 
 manual_times_df <- manual_labs %>% 
-  # mutate(manual_start_time = as_datetime(manual_start_time)) %>% 
   select(fileid, start_mass_trans = manual_start_time)
-
-
 ```
 
 ```{r}
@@ -183,17 +182,7 @@ all_trans <- massive_trans %>%
   tidyr::separate_rows(sep_val, sep = ',') %>%
   mutate(sep_val = as.integer(sep_val))
 
-# mt_patients <- mt_patients 
-# %>% 
-#   c(massive_trans %>% 
-#       subset(sapply(str_locate_all(massive_trans$conv_val, ','), nrow) > 1) %>% 
-#       pull(fileid) %>% 
-#       unique())
-
 mt_patients <- manual_times_df$fileid
-
-# mt_patients <- vector()
-
 patients_to_check <- setdiff(unique(all_trans$fileid), mt_patients)
 
 pheno_list <- list()
@@ -229,17 +218,6 @@ pheno_df <- bind_rows(pheno_list) %>%
 
 
 ```{r}
-# check_start <- manual_labs %>%
-#   left_join(pheno_df, by = 'fileid') %>%
-#   select(-c(orout, opend)) %>%
-#   mutate(start_mass_trans = as_datetime(start_mass_trans),
-#          manual_start_time = as_datetime(manual_start_time)) %>%
-#   mutate(disagree = (manual_start_time - start_mass_trans)/60)
-
-```
-
-
-```{r}
 pheno_df %>% readr::write_csv('data/mass-trans-phenotype.csv')
 
 tf_pheno <- tf %>% 
@@ -263,66 +241,3 @@ pheno_df %>% filter(fileid %in% c('C1_191121_080136', 'D4_191003_082024', 'A2_18
 ```
 
 
-## Investigate patients with duplicated transfusion `val`:
-**(Seung Mi please check!)**
-```{r}
-more_pats_to_check <- all_trans %>% 
-  add_count(fileid, name = 'num_events') %>% 
-  filter(num_events >= 3) %>% 
-  count(fileid, sep_val) %>% 
-  filter(n > 1) %>% 
-  pull(fileid) %>% 
-  unique()
-
-why <- all_trans %>% filter(fileid %in% more_pats_to_check) %>% 
-  left_join(pheno_df, by = 'fileid')
-
-check_patients_neg <- setdiff(more_pats_to_check, mt_patients)
-check_patients_pos <- intersect(more_pats_to_check, mt_patients)
-
-```
-
-Check if negative is correct:
-```{r echo}
-check_neg <- why %>%
-  filter(fileid %in% check_patients_neg) %>% group_by(fileid) %>% 
-  summarise(min_diff = min(diff(dt, lag = 2), na.rm = TRUE)) %>% 
-  filter(min_diff < 3600 |is.infinite(min_diff)) %>% 
-  pull(fileid)
-
-why %>% 
-  filter(fileid %in% check_neg) %>% 
-  select(- c(conv_val, sep_val)) %>% 
-  distinct() %>%
-  DT::datatable()
-```
-
-
-Check if possitive is correct:
-```{r}
-why_neg <- why %>%
-  filter(fileid %in% check_patients_pos) %>% group_by(fileid) %>% 
-  mutate(min_diff = min(diff(dt, lag = 2), na.rm = TRUE)) %>% 
-  # filter(min_diff >= 3600 |is.infinite(min_diff)) %>%
-  {.}
-  
-```
-I have manually checked these patients.
-Most of the phenotype seem correct, except the following patients which need further investigation:
-
-```{r}
-why %>% 
-  filter(
-    fileid %in% c('C4_190823_074052', 'D1_190905_201426', 'D1_190923_095547', 'A5_180504_073943', 'C2_190905_073807')
-  ) %>% 
-  select(- c(conv_val, sep_val)) %>% 
-  distinct() %>%
-  DT::datatable()
-```
-`C2_190905_073807` did not have massive transfusion?
-Should we replace `#3-1`, `#3-2`, `#3-3` with `#1`, `#2`, `#3`?
-
-Check special cases:
-```{r}
-pheno_df %>% filter(fileid %in% c("A1_190215_132805", "A5_180504_073943", "C2_190905_073807", "C4_190823_074052", "D1_190905_201426", "D1_170425_103512", "F4_180827_112738"))
-```
