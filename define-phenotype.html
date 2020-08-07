@@ -527,10 +527,10 @@ summary {
 <pre><code>## # A tibble: 6 x 2
 ##   fileid           start_mass_trans    
 ##   &lt;chr&gt;            &lt;chr&gt;               
-## 1 F3_190105_152344 2019-01-05T21:35:00Z
-## 2 F3_190213_111950 2019-02-13T15:15:00Z
-## 3 F3_190413_140303 2019-04-13T21:45:00Z
-## 4 F3_191031_200116 2019-11-01T03:25:00Z
+## 1 F3_190213_111950 2019-02-13T15:15:00Z
+## 2 F3_190413_140303 2019-04-13T21:45:00Z
+## 3 F3_191031_200116 2019-11-01T03:25:00Z
+## 4 F4_171219_131836 2017-12-19T17:15:00Z
 ## 5 F4_180517_153812 2018-05-17T20:55:00Z
 ## 6 C4_190617_074206 2019-06-17T17:00:00Z</code></pre>
 <p>The following patients had massive transfusion: (see Seung Mi’s google doc): (also checked with <code>sum_rbc</code>)</p>
@@ -738,25 +738,26 @@ summary {
 ## element will be used</code></pre>
 <pre><code>## Warning in if (!is.na(start_h)) {: the condition has length &gt; 1 and only the
 ## first element will be used</code></pre>
-<pre><code>## Warning in if (diff_h &lt; 1) {: the condition has length &gt; 1 and only the first
-## element will be used
-
-## Warning in if (diff_h &lt; 1) {: the condition has length &gt; 1 and only the first
-## element will be used</code></pre>
-<div class="sourceCode" id="cb34"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb34-1"><a href="#cb34-1"></a>pheno_df &lt;-<span class="st"> </span><span class="kw">bind_rows</span>(pheno_list) <span class="op">%&gt;%</span><span class="st"> </span></span>
-<span id="cb34-2"><a href="#cb34-2"></a><span class="st">  </span><span class="kw">bind_rows</span>(manual_times_df <span class="op">%&gt;%</span><span class="st"> </span><span class="kw">mutate</span>(<span class="dt">start_mass_trans =</span> <span class="kw">as_datetime</span>(start_mass_trans)))</span></code></pre></div>
-<div class="sourceCode" id="cb35"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb35-1"><a href="#cb35-1"></a>pheno_df <span class="op">%&gt;%</span><span class="st"> </span>readr<span class="op">::</span><span class="kw">write_csv</span>(<span class="st">&#39;data/mass-trans-phenotype.csv&#39;</span>)</span>
-<span id="cb35-2"><a href="#cb35-2"></a></span>
-<span id="cb35-3"><a href="#cb35-3"></a>tf_pheno &lt;-<span class="st"> </span>tf <span class="op">%&gt;%</span><span class="st"> </span></span>
-<span id="cb35-4"><a href="#cb35-4"></a><span class="st">  </span><span class="kw">left_join</span>(pheno_df, <span class="dt">by =</span> <span class="st">&#39;fileid&#39;</span>) <span class="op">%&gt;%</span><span class="st"> </span></span>
-<span id="cb35-5"><a href="#cb35-5"></a><span class="st">  </span><span class="kw">mutate</span>(<span class="dt">had_mass_trans =</span> <span class="op">!</span><span class="kw">is.na</span>(start_mass_trans))</span>
-<span id="cb35-6"><a href="#cb35-6"></a></span>
-<span id="cb35-7"><a href="#cb35-7"></a>readr<span class="op">::</span><span class="kw">write_csv</span>(tf_pheno, <span class="st">&#39;data/tf_pheno.csv&#39;</span>)</span>
-<span id="cb35-8"><a href="#cb35-8"></a></span>
-<span id="cb35-9"><a href="#cb35-9"></a>cases <span class="op">%&gt;%</span><span class="st"> </span></span>
-<span id="cb35-10"><a href="#cb35-10"></a><span class="st">  </span><span class="kw">left_join</span>(pheno_df, <span class="dt">by =</span> <span class="st">&#39;fileid&#39;</span>) <span class="op">%&gt;%</span><span class="st"> </span></span>
-<span id="cb35-11"><a href="#cb35-11"></a><span class="st">  </span><span class="kw">mutate</span>(<span class="dt">had_mass_trans =</span> <span class="op">!</span><span class="kw">is.na</span>(start_mass_trans)) <span class="op">%&gt;%</span><span class="st"> </span></span>
-<span id="cb35-12"><a href="#cb35-12"></a><span class="st">  </span>readr<span class="op">::</span><span class="kw">write_csv</span>(<span class="st">&#39;data/case_pheno.csv&#39;</span>)</span></code></pre></div>
+<div class="sourceCode" id="cb33"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb33-1"><a href="#cb33-1"></a>pheno_df &lt;-<span class="st"> </span><span class="kw">bind_rows</span>(pheno_list) <span class="op">%&gt;%</span><span class="st"> </span></span>
+<span id="cb33-2"><a href="#cb33-2"></a><span class="st">  </span><span class="kw">bind_rows</span>(manual_times_df <span class="op">%&gt;%</span><span class="st"> </span><span class="kw">mutate</span>(<span class="dt">start_mass_trans =</span> <span class="kw">as_datetime</span>(start_mass_trans)))</span></code></pre></div>
+<div class="sourceCode" id="cb34"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb34-1"><a href="#cb34-1"></a>pheno_df <span class="op">%&gt;%</span><span class="st"> </span>readr<span class="op">::</span><span class="kw">write_csv</span>(<span class="st">&#39;data/mass-trans-phenotype.csv&#39;</span>)</span>
+<span id="cb34-2"><a href="#cb34-2"></a></span>
+<span id="cb34-3"><a href="#cb34-3"></a>tf_pheno &lt;-<span class="st"> </span>tf <span class="op">%&gt;%</span><span class="st"> </span></span>
+<span id="cb34-4"><a href="#cb34-4"></a><span class="st">  </span><span class="kw">left_join</span>(pheno_df, <span class="dt">by =</span> <span class="st">&#39;fileid&#39;</span>) <span class="op">%&gt;%</span><span class="st"> </span></span>
+<span id="cb34-5"><a href="#cb34-5"></a><span class="st">  </span><span class="kw">mutate</span>(<span class="dt">had_mass_trans =</span> <span class="op">!</span><span class="kw">is.na</span>(start_mass_trans))</span>
+<span id="cb34-6"><a href="#cb34-6"></a></span>
+<span id="cb34-7"><a href="#cb34-7"></a>readr<span class="op">::</span><span class="kw">write_csv</span>(tf_pheno, <span class="st">&#39;data/tf_pheno.csv&#39;</span>)</span>
+<span id="cb34-8"><a href="#cb34-8"></a></span>
+<span id="cb34-9"><a href="#cb34-9"></a>cases <span class="op">%&gt;%</span><span class="st"> </span></span>
+<span id="cb34-10"><a href="#cb34-10"></a><span class="st">  </span><span class="kw">left_join</span>(pheno_df, <span class="dt">by =</span> <span class="st">&#39;fileid&#39;</span>) <span class="op">%&gt;%</span><span class="st"> </span></span>
+<span id="cb34-11"><a href="#cb34-11"></a><span class="st">  </span><span class="kw">mutate</span>(<span class="dt">had_mass_trans =</span> <span class="op">!</span><span class="kw">is.na</span>(start_mass_trans)) <span class="op">%&gt;%</span><span class="st"> </span></span>
+<span id="cb34-12"><a href="#cb34-12"></a><span class="st">  </span>readr<span class="op">::</span><span class="kw">write_csv</span>(<span class="st">&#39;data/case_pheno.csv&#39;</span>)</span>
+<span id="cb34-13"><a href="#cb34-13"></a></span>
+<span id="cb34-14"><a href="#cb34-14"></a><span class="kw">read_excel</span>(<span class="st">&#39;data/tf.xlsx&#39;</span>) <span class="op">%&gt;%</span><span class="st"> </span></span>
+<span id="cb34-15"><a href="#cb34-15"></a><span class="st">  </span><span class="kw">mutate</span>(<span class="dt">fileid =</span> <span class="kw">gsub</span>(<span class="st">&#39;.vital&#39;</span>, <span class="st">&#39;&#39;</span>, fileid)) <span class="op">%&gt;%</span></span>
+<span id="cb34-16"><a href="#cb34-16"></a><span class="st">  </span><span class="kw">left_join</span>(pheno_df, <span class="dt">by =</span> <span class="st">&#39;fileid&#39;</span>) <span class="op">%&gt;%</span><span class="st"> </span></span>
+<span id="cb34-17"><a href="#cb34-17"></a><span class="st">  </span><span class="kw">mutate</span>(<span class="dt">had_mass_trans =</span> <span class="op">!</span><span class="kw">is.na</span>(start_mass_trans)) <span class="op">%&gt;%</span><span class="st"> </span></span>
+<span id="cb34-18"><a href="#cb34-18"></a><span class="st">  </span>readr<span class="op">::</span><span class="kw">write_csv</span>(<span class="st">&#39;data/tf-all-pheno.csv&#39;</span>)</span></code></pre></div>
 <p>Check: <code>C1_191121_080136</code> should have massive transfusion. <code>D4_191003_082024</code> should not.</p>
 <pre><code>##             fileid    start_mass_trans
 ## 1 C1_191121_080136 2019-11-21 11:20:00</code></pre>

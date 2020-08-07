@@ -42,11 +42,13 @@ get_num_list <- function(val){
 #   } else {'guess'})
 # }
 # 
-# ecg_patients <- readr::read_csv('data/vitaldb_trks_art_ecg.csv') %>% 
-#   mutate(Filename = gsub('.vital', '', Filename)) %>% 
+# ecg_patients <- readr::read_csv('data/vitaldb_trks_art_ecg.csv') %>%
+#   mutate(Filename = gsub('.vital', '', Filename)) %>%
 #   pull(Filename)
 # 
 # cases <- read_excel('data/cases.xlsx', col_types = ct) %>%
+#   mutate(fileid = gsub('.vital', '', fileid)) %>%
+#   filter(fileid %in% ecg_patients) %>% # only consider invasive arterial monitoring  patients
 #   mutate(em_yn = as.factor(em_yn),
 #          fileid = gsub('.vital', '', fileid))
 # 
@@ -230,6 +232,12 @@ cases %>%
   left_join(pheno_df, by = 'fileid') %>% 
   mutate(had_mass_trans = !is.na(start_mass_trans)) %>% 
   readr::write_csv('data/case_pheno.csv')
+
+read_excel('data/tf.xlsx') %>% 
+  mutate(fileid = gsub('.vital', '', fileid)) %>%
+  left_join(pheno_df, by = 'fileid') %>% 
+  mutate(had_mass_trans = !is.na(start_mass_trans)) %>% 
+  readr::write_csv('data/tf-all-pheno.csv')
 ```
 
 
