@@ -28,30 +28,47 @@ get_num_list <- function(val){
   }
   gsub('#', '', val)
 }
+# case_deets <- read_excel('data/cases-detail.xlsx')
+# labs <- read_excel('data/labs.xlsx')
 ```
 
 ```{r warning=FALSE}
-nms <- names(read_excel('data/cases.xlsx', n_max = 0))
-ct <- vector(mode = 'character')
-for (i in nms){
-  ct <- c(ct, if (grepl('^em_yn|premedi_smoking|nurse_|caseid', i)){
-  'text'
-  } else if (grepl('postop_tnt_peak30|preop_tnt', i)) { # very high missing rate for these columns anyway
-    'text'
-  } else {'guess'})
-}
+# nms <- names(read_excel('data/cases.xlsx', n_max = 0))
+# ct <- vector(mode = 'character')
+# for (i in nms){
+#   ct <- c(ct, if (grepl('^em_yn|premedi_smoking|nurse_|caseid', i)){
+#   'text'
+#   } else if (grepl('postop_tnt_peak30|preop_tnt', i)) { # very high missing rate for these columns anyway
+#     'text'
+#   } else {'guess'})
+# }
+# 
+# ecg_patients <- readr::read_csv('data/vitaldb_trks_art_ecg.csv') %>% 
+#   mutate(Filename = gsub('.vital', '', Filename)) %>% 
+#   pull(Filename)
+# 
+# cases <- read_excel('data/cases.xlsx', col_types = ct) %>%
+#   mutate(em_yn = as.factor(em_yn),
+#          fileid = gsub('.vital', '', fileid))
+# 
+# tf <- read_excel('data/tf.xlsx') %>%
+#   mutate(fileid = gsub('.vital', '', fileid)) %>%
+#   filter(fileid %in% ecg_patients) %>% # only consider invasive arterial monitoring  patients
+#   distinct() # there are some duplicated rows in tf
+# skimr::skim(tf)
+# 
+# save(tf, ecg_patients, cases, file = 'data/gen-outcome.Rdata')
 
-cases <- read_excel('data/cases.xlsx', col_types = ct) %>% 
-  mutate(em_yn = as.factor(em_yn),
-         fileid = gsub('.vital', '', fileid))
-# cases <- readr::read_csv('data/cases.xlsx')
-# case_deets <- read_excel('data/cases-detail.xlsx')
-# labs <- read_excel('data/labs.xlsx')
-tf <- read_excel('data/tf.xlsx') %>% 
-  mutate(fileid = gsub('.vital', '', fileid)) %>% 
-  distinct() # there are some duplicated rows in tf
-skimr::skim(tf)
-# skimr::skim(cases)
+load('data/gen-outcome.Rdata')
+manual_labs <- read_excel('data/SeungMi-manual-labels.xlsx') %>% 
+  filter(!is.na(manual_start_time),
+         fileid %in% ecg_patients)
+
+manual_times_df <- manual_labs %>% 
+  # mutate(manual_start_time = as_datetime(manual_start_time)) %>% 
+  select(fileid, start_mass_trans = manual_start_time)
+
+
 ```
 
 ```{r}
@@ -75,70 +92,76 @@ massive_trans <- tf %>%
 
 ```
 
-```{r}
-massive_trans %>% filter(val == '#3-3')
-```
-
 ## Special cases
 
 ### Manually checked for cases:
 
 `D5_190109_124529`: "This patient started 1st, 2nd transfusion at 2019-01-09 13:40, and the 2nd transfusion ended at 2019-01-09 13:50. The 3rd-6th (4 RBC) transfusion started at 2019-01-09 13:55, and all of them ended at 2019-01-09 14:00. And the 7th-10th transfusion started at 2019-01-09 14:05, and all of them ended at 2019-01-09 14:10."
-```{r echo=FALSE}
-massive_trans %>% filter(fileid == 'D5_190109_124529')
-```
 
-Similarly, `D1_180727_110744` has massive transfusion:
-```{r echo=FALSE}
-massive_trans %>% filter(fileid == 'D1_180727_110744')
-```
+@SeungMi We should revise this! I think there are actually 15 transfusions. (I checked with `sum_rbc` in `cases`.) Do you think the below changes are reasonable?
 
 The patient `C4_190617_074206` underwent `Spondylectomy : en-bloc spondylectomy, thoracic` and the `sum_ebl` (estimated blood loss during surgery) was 25800 and the `sum_rbc` was 66 (transfision of 66 rbc). This also acutally happended during operation. This type of massive transfusion is not normal and may have been not expected before operation, and if we can predict that, we can prepare that situation. I think that is the purpose of our project.
+
+@SeungMi Is it reasonable to make start time of `C4_190617_074206` at `2019-06-17 17:00:00`?
 ```{r echo=FALSE}
-massive_trans %>% filter(fileid == 'C4_190617_074206')
-```
-
-The following patients had massive transfusion: (see Seung Mi's google doc):
-```{r echo=FALSE}
-massive_trans %>% filter(fileid %in% c('A1_190215_132805', 'D1_170425_103512', 'F4_180827_112738'))
-```
-
-Let's add these to `mt_patients` for now:
-```{r}
-mt_patients <- c('D5_190109_124529', 'D1_180727_110744', 'C4_190617_074206', 'A1_190215_132805', 'D1_170425_103512', 'F4_180827_112738')
-```
-
-
-#### On the other hand: (non-cases)
-
-Only one row for `D4_191111_185103`:
-```{r echo=FALSE}
-massive_trans %>% filter(fileid == 'D4_191111_185103')
-```
-so this patient did not have massive transfusion.
-
-Also, `C4_190508_124038` does not have massive transfusion:
-```{r echo=FALSE}
-massive_trans %>% filter(fileid == 'C4_190508_124038')
-```
-
-`D2_181018_132531`: The patient underwent `Repair of aneurysm ( AAA )  : retroperitoneal approach or medial visceral rotation, supraceliac clamping` and I think that 140 transfusion within 7 hours is possible during that operation.
-```{r echo=FALSE}
-massive_trans %>% filter(fileid == 'D2_181018_132531')
-```
-
-`A2_190228_141759` underwent `Total hysterectomy ( multiport laparoscopy assisted vaginal )  : LAVH-BSO `. The surgery usually does not cause massive transfusion, but the `sum_rbc` during surgery was '63' in cases file, and she died after the surgery. This was not normal situation but this actually happened.
-```{r echo=FALSE}
-massive_trans %>% filter(fileid == 'A2_190228_141759')
-```
-
-`A5_180504_073943` and `C4_190823_074052` and `D1_190905_201426` and `F2_180816_095513` didn't have massive transfusion: (see Seung Mi's google doc)
-```{r echo=FALSE}
-massive_trans %>% filter(fileid %in% c('A5_180504_073943', 'C4_190823_074052', 'D1_190905_201426', 'F2_180816_095513', 'D1_190905_201426'))
+tf %>% filter(fileid == 'C4_190617_074206')
 ```
 
 ```{r}
-not_mt_patients <- c('D4_191111_185103', 'C4_190508_124038', 'D2_181018_132531', 'A2_190228_141759', 'A5_180504_073943', 'C4_190823_074052', 'D1_190905_2014260', 'F2_180816_095513', 'D1_190905_201426')
+manual_times_df <- manual_times_df %>% 
+  rbind(c('C4_190617_074206', '2019-06-17T17:00:00Z'))
+tail(manual_times_df)
+```
+
+The following patients had massive transfusion: (see Seung Mi's google doc): (also checked with `sum_rbc`)
+
+```{r echo=FALSE}
+massive_trans %>% filter(fileid %in% c('A1_190215_132805', 'F4_180827_112738', 'D1_180727_110744', 'D5_190109_124529'))
+massive_trans[massive_trans$fileid == 'A1_190215_132805', 'val'] <- c('#1,#2', '#3', '#4', '#5', '#6')
+massive_trans[massive_trans$fileid == 'F4_180827_112738', 'val'] <- c('#1', '#2', '#3', '#4')
+massive_trans[massive_trans$fileid == 'D1_180727_110744' & massive_trans$val == '#3.4.5', 'val'] <- '#3,4,5'
+massive_trans[massive_trans$fileid == 'D5_190109_124529', 'val'] <- c('#1,2', '#3-6', '#7-10', '#11-14', '#15')
+massive_trans %>% filter(fileid %in% c('A1_190215_132805', 'F4_180827_112738', 'D1_180727_110744', 'D5_190109_124529'))
+```
+
+<!-- `D2_181018_132531`: The patient underwent `Repair of aneurysm ( AAA )  : retroperitoneal approach or medial visceral rotation, supraceliac clamping` and I think that 140 transfusion within 7 hours is possible during that operation. -->
+<!-- ```{r echo=FALSE} -->
+<!-- massive_trans %>% filter(fileid == 'D2_181018_132531') -->
+<!-- ``` -->
+
+<!-- `A2_190228_141759` underwent `Total hysterectomy ( multiport laparoscopy assisted vaginal )  : LAVH-BSO `. The surgery usually does not cause massive transfusion, but the `sum_rbc` during surgery was '63' in cases file, and she died after the surgery. This was not normal situation but this actually happened. -->
+<!-- ```{r echo=FALSE} -->
+<!-- massive_trans %>% filter(fileid == 'A2_190228_141759') -->
+<!-- ``` -->
+
+
+### On the other hand: (non-cases)
+
+- We confirm that `F2_180816_095513` has `sum_rbc= 6`, concluding they did have massive transfusion.
+Replacing `#1-3` with `#3-5` and `#3` with `#6`.
+
+- Only one row for `D4_191111_185103`. 
+Checked `sum_rbc = 1`. 
+So this patient did not have massive transfusion.
+
+- `C4_190508_124038` does not have massive transfusion. 
+Checked `sum_rbc = 3`. 
+
+```{r}
+massive_trans %>% filter(fileid %in% c('F2_180816_095513', 'D4_191111_185103', 'C4_190508_124038'))
+massive_trans[massive_trans$fileid == 'F2_180816_095513', 'val'] <- c('#1', '#2', '#3-5', '#6')
+massive_trans[massive_trans$fileid == 'D4_191111_185103', 'val'] <- '#1'
+massive_trans[massive_trans$fileid == 'C4_190508_124038', 'val'] <- c('#1', '#2', '#3')
+massive_trans %>% filter(fileid %in% c('F2_180816_095513', 'D4_191111_185103', 'C4_190508_124038'))
+```
+
+`A5_180504_073943` (`sum_rbc = 4`) and `C4_190823_074052` (`sum_rbc = 6`) and `D1_190905_201426` (`sum_rbc = 3`) didn't have massive transfusion: (see Seung Mi's google doc)
+```{r echo=FALSE}
+massive_trans %>% filter(fileid %in% c('A5_180504_073943', 'C4_190823_074052', 'D1_190905_201426'))
+massive_trans[massive_trans$fileid == 'D1_190905_201426', 'val'] <- c('#1-2', '#3')
+massive_trans[massive_trans$fileid == 'C4_190823_074052', 'val'] <- paste0('#', seq.int(6))
+massive_trans[massive_trans$fileid == 'A5_180504_073943', 'val'] <- c(paste0('#', seq.int(4)), NA)
+massive_trans %>% filter(fileid %in% c('A5_180504_073943', 'C4_190823_074052', 'D1_190905_201426'))
 ```
 
 ## Systematic analysis
@@ -147,8 +170,7 @@ not_mt_patients <- c('D4_191111_185103', 'C4_190508_124038', 'D2_181018_132531',
 # massive_trans %>% filter(grepl('\\.', val)) %>% select(-fileid)
 # Also needs to replace . with -
 massive_trans <- massive_trans %>% 
-  filter(val != '#',
-         !fileid %in% c(not_mt_patients, mt_patients)) %>% 
+  filter(val != '#') %>% 
   mutate(val = gsub('\\.', '-', val))
 
 massive_trans$conv_val <- sapply(massive_trans$val, get_num_list)
@@ -161,17 +183,24 @@ all_trans <- massive_trans %>%
   tidyr::separate_rows(sep_val, sep = ',') %>%
   mutate(sep_val = as.integer(sep_val))
 
-mt_patients <- mt_patients %>% 
-  c(massive_trans %>% 
-      subset(sapply(str_locate_all(massive_trans$conv_val, ','), nrow) > 1) %>% 
-      pull(fileid) %>% 
-      unique())
+# mt_patients <- mt_patients 
+# %>% 
+#   c(massive_trans %>% 
+#       subset(sapply(str_locate_all(massive_trans$conv_val, ','), nrow) > 1) %>% 
+#       pull(fileid) %>% 
+#       unique())
+
+mt_patients <- manual_times_df$fileid
+
+# mt_patients <- vector()
 
 patients_to_check <- setdiff(unique(all_trans$fileid), mt_patients)
 
+pheno_list <- list()
+
 for (patient in patients_to_check){
   df_i <- all_trans %>% filter(fileid == patient)
-  diff_h <- vector()
+  start_h <- NA
 
   for (i in 3:max(df_i$sep_val)){
     if ((i %in% df_i$sep_val) && (sum(df_i$sep_val <= (i-2)) > 0)){
@@ -179,32 +208,49 @@ for (patient in patients_to_check){
 
       t2 <- df_i %>% filter(sep_val == i) %>% pull(dt)
       t1 <- df_i %>% filter(sep_val == pre_idx) %>% pull(dt)
-      diff_h <- c(diff_h, difftime(t2, t1, units = 'hours') %>% as.numeric())
+      diff_h <- difftime(t2, t1, units = 'hours') %>% as.numeric()
+      
+      if (diff_h < 1){
+        start_h <- t1
+        break
+      }
     }
   }
-  if (any(diff_h < 1))
+  
+  if (!is.na(start_h)){
     mt_patients <- c(mt_patients, patient)
+    pheno_list[[patient]] <- data.frame(fileid = patient, start_mass_trans = start_h)
+  }
 }
+
+pheno_df <- bind_rows(pheno_list) %>% 
+  bind_rows(manual_times_df %>% mutate(start_mass_trans = as_datetime(start_mass_trans)))
+```
+
+
+```{r}
+# check_start <- manual_labs %>%
+#   left_join(pheno_df, by = 'fileid') %>%
+#   select(-c(orout, opend)) %>%
+#   mutate(start_mass_trans = as_datetime(start_mass_trans),
+#          manual_start_time = as_datetime(manual_start_time)) %>%
+#   mutate(disagree = (manual_start_time - start_mass_trans)/60)
 
 ```
 
 
 ```{r}
-phenotypes <- data.frame(fileid = unique(tf$fileid)) %>% 
-  mutate(had_mass_trans = (fileid %in% mt_patients))
-
-table(phenotypes$had_mass_trans)
-phenotypes %>% readr::write_csv('data/mass-trans-phenotype.csv')
-
-tf %>% 
-  left_join(phenotypes, by = 'fileid') %>% 
-  readr::write_csv('data/tf_pheno.csv')
+pheno_df %>% readr::write_csv('data/mass-trans-phenotype.csv')
 
 tf_pheno <- tf %>% 
-  left_join(phenotypes, by = 'fileid') 
+  left_join(pheno_df, by = 'fileid') %>% 
+  mutate(had_mass_trans = !is.na(start_mass_trans))
+
+readr::write_csv(tf_pheno, 'data/tf_pheno.csv')
 
 cases %>% 
-  left_join(phenotypes, by = 'fileid') %>% 
+  left_join(pheno_df, by = 'fileid') %>% 
+  mutate(had_mass_trans = !is.na(start_mass_trans)) %>% 
   readr::write_csv('data/case_pheno.csv')
 ```
 
@@ -213,7 +259,7 @@ Check: `C1_191121_080136` should have massive transfusion.
 `D4_191003_082024` should not.
 
 ```{r echo=FALSE}
-phenotypes %>% filter(fileid %in% c('C1_191121_080136', 'D4_191003_082024', 'A2_180716_111059'))
+pheno_df %>% filter(fileid %in% c('C1_191121_080136', 'D4_191003_082024', 'A2_180716_111059'))
 ```
 
 
@@ -229,7 +275,7 @@ more_pats_to_check <- all_trans %>%
   unique()
 
 why <- all_trans %>% filter(fileid %in% more_pats_to_check) %>% 
-  left_join(phenotypes, by = 'fileid')
+  left_join(pheno_df, by = 'fileid')
 
 check_patients_neg <- setdiff(more_pats_to_check, mt_patients)
 check_patients_pos <- intersect(more_pats_to_check, mt_patients)
@@ -252,12 +298,6 @@ why %>%
 ```
 
 
-```{r echo=FALSE}
-massive_trans %>% filter(fileid == 'C2_190905_073807')
-```
-
-
-
 Check if possitive is correct:
 ```{r}
 why_neg <- why %>%
@@ -273,7 +313,7 @@ Most of the phenotype seem correct, except the following patients which need fur
 ```{r}
 why %>% 
   filter(
-    fileid %in% c('C4_190823_074052', 'D1_190905_201426', 'D1_190923_095547', 'F2_180816_095513', 'A5_180504_073943', 'C2_190905_073807')
+    fileid %in% c('C4_190823_074052', 'D1_190905_201426', 'D1_190923_095547', 'A5_180504_073943', 'C2_190905_073807')
   ) %>% 
   select(- c(conv_val, sep_val)) %>% 
   distinct() %>%
@@ -284,6 +324,5 @@ Should we replace `#3-1`, `#3-2`, `#3-3` with `#1`, `#2`, `#3`?
 
 Check special cases:
 ```{r}
-phenotypes %>% filter(fileid %in% c("A1_190215_132805", "A5_180504_073943", "C2_190905_073807", "C4_190823_074052", "D1_190905_201426", "D1_170425_103512", "F4_180827_112738", "F2_180816_095513"))
+pheno_df %>% filter(fileid %in% c("A1_190215_132805", "A5_180504_073943", "C2_190905_073807", "C4_190823_074052", "D1_190905_201426", "D1_170425_103512", "F4_180827_112738"))
 ```
-
