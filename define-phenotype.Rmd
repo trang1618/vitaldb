@@ -74,6 +74,7 @@ manual_times_df <- manual_labs %>%
 
 ```{r}
 massive_trans <- tf %>% 
+  mutate(val_ori = val) %>% 
   filter(grepl('#', val), # only consider rows with #
          !grepl('cont', val),
          !val %in% c(' #', '#!', '#0316454', 'on #0')) %>% 
@@ -86,9 +87,11 @@ massive_trans <- tf %>%
            gsub('#25-289', '#25-28', .) %>% # continuous transfusion for D1_180419_143306
            gsub('#35-#474', '#35-44', .) %>% # continuous transfusion for F4_160803_115114
            gsub('#9#10#11', '#9-11', .) %>% # D5_160901_172629
+           gsub('#7,8,9,1', '#7-10', .) %>% # D4_190619_094830
            gsub('#3-1', '#1', .) %>% # C2_190905_073807, C5_190507_120916
            gsub('#3-2', '#2', .) %>% # C2_190905_073807, C5_190507_120916, A2_180716_111059
            gsub('#3-3', '#3', .) %>% # C2_190905_073807, C5_190507_120916, A2_180716_111059
+           gsub('on #2,3', NA, .) %>% # E6_180517_124933
            gsub('FMS|FM|CPB|B\\+|hold|on|fro| |resume|pheres', '', .))
 
 ```
@@ -97,33 +100,17 @@ massive_trans <- tf %>%
 
 ### Manually checked for cases:
 
-`D5_190109_124529`: "This patient started 1st, 2nd transfusion at 2019-01-09 13:40, and the 2nd transfusion ended at 2019-01-09 13:50. The 3rd-6th (4 RBC) transfusion started at 2019-01-09 13:55, and all of them ended at 2019-01-09 14:00. And the 7th-10th transfusion started at 2019-01-09 14:05, and all of them ended at 2019-01-09 14:10."
-
-@SeungMi We should revise this! I think there are actually 15 transfusions. (I checked with `sum_rbc` in `cases`.) Do you think the below changes are reasonable?
-
 The patient `C4_190617_074206` underwent `Spondylectomy : en-bloc spondylectomy, thoracic` and the `sum_ebl` (estimated blood loss during surgery) was 25800 and the `sum_rbc` was 66 (transfision of 66 rbc). This also acutally happended during operation. This type of massive transfusion is not normal and may have been not expected before operation, and if we can predict that, we can prepare that situation. I think that is the purpose of our project.
 
-@SeungMi Is it reasonable to make start time of `C4_190617_074206` at `2019-06-17 17:00:00`?
-```{r echo=FALSE}
-tf %>% filter(fileid == 'C4_190617_074206')
-```
-
+SeungMi confirmed it's reasonable to add manually the following start times:
 ```{r}
+tf %>% filter(fileid == 'C4_190617_074206')
 manual_times_df <- manual_times_df %>% 
-  rbind(c('C4_190617_074206', '2019-06-17T17:00:00Z'))
-tail(manual_times_df)
+  rbind(c('C4_190617_074206', '2019-06-17T17:00:00Z')) %>% 
+  rbind(c('D1_180802_011516', '2018-08-02 01:15:00'))
 ```
 
-The following patients had massive transfusion: (see Seung Mi's google doc): (also checked with `sum_rbc`)
-
-```{r echo=FALSE}
-massive_trans %>% filter(fileid %in% c('A1_190215_132805', 'F4_180827_112738', 'D1_180727_110744', 'D5_190109_124529'))
-massive_trans[massive_trans$fileid == 'A1_190215_132805', 'val'] <- c('#1,#2', '#3', '#4', '#5', '#6')
-massive_trans[massive_trans$fileid == 'F4_180827_112738', 'val'] <- c('#1', '#2', '#3', '#4')
-massive_trans[massive_trans$fileid == 'D1_180727_110744' & massive_trans$val == '#3.4.5', 'val'] <- '#3,4,5'
-massive_trans[massive_trans$fileid == 'D5_190109_124529', 'val'] <- c('#1,2', '#3-6', '#7-10', '#11-14', '#15')
-massive_trans %>% filter(fileid %in% c('A1_190215_132805', 'F4_180827_112738', 'D1_180727_110744', 'D5_190109_124529'))
-```
+The following changes include some straight forward modifications and others (also checked with `sum_rbc`, see Seung Mi's google doc).
 
 <!-- `D2_181018_132531`: The patient underwent `Repair of aneurysm ( AAA )  : retroperitoneal approach or medial visceral rotation, supraceliac clamping` and I think that 140 transfusion within 7 hours is possible during that operation. -->
 <!-- ```{r echo=FALSE} -->
@@ -145,24 +132,42 @@ Replacing `#1-3` with `#3-5` and `#3` with `#6`.
 Checked `sum_rbc = 1`. 
 So this patient did not have massive transfusion.
 
+- `A2_181126_101740`: `sum_rbc = 13`, had massive transfusion.
+
+- `A2_181126_101740`: `sum_rbc = 6`, had massive transfusion.
+
 - `C4_190508_124038` does not have massive transfusion. 
 Checked `sum_rbc = 3`. 
 
-```{r}
-massive_trans %>% filter(fileid %in% c('F2_180816_095513', 'D4_191111_185103', 'C4_190508_124038'))
+- `A5_180504_073943` (`sum_rbc = 4`) and `C4_190823_074052` (`sum_rbc = 6`) and `D1_190905_201426` (`sum_rbc = 3`) didn't have massive transfusion. (see Seung Mi's google doc)
+```{r echo=FALSE}
+massive_trans[massive_trans$fileid == 'A1_190215_132805', 'val'] <- c('#1,#2', '#3', '#4', '#5', '#6')
+massive_trans[massive_trans$fileid == 'F4_180827_112738', 'val'] <- c('#1', '#2', '#3', '#4')
+massive_trans[massive_trans$fileid == 'D1_180727_110744' & massive_trans$val == '#3.4.5', 'val'] <- '#3,4,5'
+massive_trans[massive_trans$fileid == 'F4_171219_131836', 'val'] <- c('#1', '#2', '#3', '#4')
+massive_trans[massive_trans$fileid == 'D5_190109_124529', 'val'] <- c('#1,2', '#3-6', '#7-10', '#11-14', '#15')
 massive_trans[massive_trans$fileid == 'F2_180816_095513', 'val'] <- c('#1', '#2', '#3-5', '#6')
 massive_trans[massive_trans$fileid == 'D4_191111_185103', 'val'] <- '#1'
 massive_trans[massive_trans$fileid == 'C4_190508_124038', 'val'] <- c('#1', '#2', '#3')
-massive_trans %>% filter(fileid %in% c('F2_180816_095513', 'D4_191111_185103', 'C4_190508_124038'))
-```
-
-`A5_180504_073943` (`sum_rbc = 4`) and `C4_190823_074052` (`sum_rbc = 6`) and `D1_190905_201426` (`sum_rbc = 3`) didn't have massive transfusion: (see Seung Mi's google doc)
-```{r echo=FALSE}
-massive_trans %>% filter(fileid %in% c('A5_180504_073943', 'C4_190823_074052', 'D1_190905_201426'))
 massive_trans[massive_trans$fileid == 'D1_190905_201426', 'val'] <- c('#1-2', '#3')
 massive_trans[massive_trans$fileid == 'C4_190823_074052', 'val'] <- paste0('#', seq.int(6))
 massive_trans[massive_trans$fileid == 'A5_180504_073943', 'val'] <- c(paste0('#', seq.int(4)), NA)
-massive_trans %>% filter(fileid %in% c('A5_180504_073943', 'C4_190823_074052', 'D1_190905_201426'))
+massive_trans[massive_trans$fileid == 'A2_181126_101740', 'val'] <- c('#1', '#2', '#3-4', '#5-6', '#7-8', paste0('#', 9:13))
+massive_trans[massive_trans$fileid == 'D1_170724_102446', 'val'] <- c('#1-2', '#3-4', '#5-6')
+massive_trans[massive_trans$fileid == 'D1_190923_095547', 'val'] <- c('#1-4', '#5-6', '#7-8')
+massive_trans[massive_trans$fileid == 'D2_190218_171557', 'val'] <- paste0('#', seq.int(5))
+massive_trans[massive_trans$fileid == 'D5_170111_105538', 'val'] <- c('#1-11', '#12-27', '#28-43', '#44-51', '#52-59') 
+massive_trans[massive_trans$fileid == 'F1_180517_214132', 'val'] <- c('#1-2', '#3-6', '#7-10', '#11-14')
+massive_trans[massive_trans$fileid == 'F2_190210_060623', 'val'] <- c("#1-3", "#4-6", "#7-9", "#10-14", "#15")
+massive_trans[massive_trans$fileid == 'D5_180803_162219', 'val'] <- c("#1-2", "#3-4", "#5-10", "#11-14", "#15-18", "#19-22", "#23-24")
+massive_trans %>% 
+  filter(fileid %in% 
+           c('A1_190215_132805', 'F4_180827_112738', 'D1_180727_110744', 'D5_190109_124529', 
+             'F4_171219_131836', 'F2_180816_095513', 'D4_191111_185103', 'C4_190508_124038', 
+             'A5_180504_073943', 'C4_190823_074052', 'D1_190905_201426', 'A2_181126_101740', 
+             'D1_170724_102446', 'D1_190923_095547', 'D2_190218_171557', 'D5_170111_105538',
+             'F1_180517_214132', 'F2_190210_060623')) %>% 
+  DT::datatable()
 ```
 
 ## Systematic analysis
@@ -184,11 +189,12 @@ all_trans <- massive_trans %>%
   tidyr::separate_rows(sep_val, sep = ',') %>%
   mutate(sep_val = as.integer(sep_val))
 
-mt_patients <- manual_times_df$fileid
+mt_patients <- manual_times_df$fileid # temporary
 patients_to_check <- setdiff(unique(all_trans$fileid), mt_patients)
 
 pheno_list <- list()
 
+options(warn=2)
 for (patient in patients_to_check){
   df_i <- all_trans %>% filter(fileid == patient)
   start_h <- NA
@@ -200,7 +206,6 @@ for (patient in patients_to_check){
       t2 <- df_i %>% filter(sep_val == i) %>% pull(dt)
       t1 <- df_i %>% filter(sep_val == pre_idx) %>% pull(dt)
       diff_h <- difftime(t2, t1, units = 'hours') %>% as.numeric()
-      
       if (diff_h < 1){
         start_h <- t1
         break
@@ -243,9 +248,10 @@ read_excel('data/tf.xlsx') %>%
 
 Check: `C1_191121_080136` should have massive transfusion.
 `D4_191003_082024` should not.
+`F4_171219_131836` should start at `2017-12-19T17:15:00Z`.
 
 ```{r echo=FALSE}
-pheno_df %>% filter(fileid %in% c('C1_191121_080136', 'D4_191003_082024', 'A2_180716_111059'))
+pheno_df %>% filter(fileid %in% c('C1_191121_080136', 'D4_191003_082024', 'A2_180716_111059', 'F4_171219_131836', 'C4_190617_074206', 'F2_180816_095513', 'D1_170724_102446', 'D1_180802_011516', 'D4_190619_094830', 'D5_180803_162219', 'E6_180517_124933', 'F2_190210_060623'))
 ```
 
 
