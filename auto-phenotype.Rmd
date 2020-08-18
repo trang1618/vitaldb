@@ -12,58 +12,59 @@ library(dplyr)
 library(readxl)
 library(stringr)
 library(lubridate)
+
+get_num_list <- function(val){
+  # reformat the `val` column, e.g. get_num_list('#3-#5') = '3,4,5'
+  if (grepl('-', val) || nrow(str_locate_all(val, '#')[[1]]) > 1){
+    return(str_split(val, '-|#') %>% 
+      unlist() %>%
+      gsub('#|,', '', .) %>% 
+      as.integer() %>% 
+      na.omit() %>% 
+      as.list() %>% 
+      do.call('seq.int', .) %>% 
+      paste(collapse = ','))
+  }
+  gsub('#', '', val)
+}
+```
+
+```{r include=FALSE}
+# case_deets <- read_excel('data/cases-detail.xlsx')
+# labs <- read_excel('data/labs.xlsx')
+# nms <- names(read_excel('data/cases.xlsx', n_max = 0))
+# ct <- vector(mode = 'character')
+# for (i in nms){
+#   ct <- c(ct, if (grepl('^em_yn|premedi_smoking|nurse_|caseid', i)){
+#   'text'
+#   } else if (grepl('postop_tnt_peak30|preop_tnt', i)) { # very high missing rate for these columns anyway
+#     'text'
+#   } else {'guess'})
+# }
+# 
+# ecg_patients <- readr::read_csv('data/vitaldb_trks_art_ecg.csv') %>%
+#   mutate(Filename = gsub('.vital', '', Filename)) %>%
+#   pull(Filename)
+# 
+# cases <- read_excel('data/cases.xlsx', col_types = ct) %>%
+#   mutate(fileid = gsub('.vital', '', fileid)) %>%
+#   filter(fileid %in% ecg_patients) %>% # only consider invasive arterial monitoring  patients
+#   mutate(em_yn = as.factor(em_yn),
+#          fileid = gsub('.vital', '', fileid))
+# 
+# tf <- read_excel('data/tf.xlsx') %>%
+#   mutate(fileid = gsub('.vital', '', fileid)) %>%
+#   filter(fileid %in% ecg_patients) %>% # only consider invasive arterial monitoring  patients
+#   distinct() # there are some duplicated rows in tf
+# skimr::skim(tf)
+# 
+# save(tf, ecg_patients, cases, file = 'data/gen-outcome.Rdata')
 ```
 
 
 ```{r warning=FALSE}
 load('data/gen-outcome.Rdata')
-auto_pheno_df <- readr::read_csv('data/auto-mass-trans-phenotype.csv')
-manual_labs <- read_excel('data/tf_pheno_Trang_SMLee_20200809-reference.xlsx', na = 'NA') %>% 
-  # select(-start_mass_trans) %>% 
-  {.}
-unknown_patients <- manual_labs %>% 
-  filter(had_mass_trans == 'unknown') %>% 
-  pull(fileid) %>% 
-  unique()
 
-tf <- tf %>% filter(!fileid %in% unknown_patients)
-cases <- cases %>% filter(!fileid %in% unknown_patients)
-
-# manual_labs <- manual_labs %>% 
-#   filter(!fileid %in% unknown_patients)
-
-# old_manual_times <- read_excel('data/tf_pheno-SeungMi-orout_20200807.xlsx', na = 'NA') %>% 
-#   filter(!is.na(manual_start_time),
-#          !fileid %in% c('A4_180528_103731', 'D1_170930_005636', 'D1_181030_204341', 'F3_180509_221019')) %>% 
-#   select(fileid, start_mass_trans = manual_start_time) %>% 
-#   distinct()
-
-# manual_times_df <- manual_labs %>% 
-#   filter(!fileid %in% unknown_patients,
-#          start_mass_trans != SMLee_start_mass_trans,
-#          !is.na(SMLee_start_mass_trans),
-#          fileid %in% ecg_patients) %>% 
-#   select(fileid, start_mass_trans = SMLee_start_mass_trans) %>% 
-#   distinct() %>% 
-#   bind_rows(old_manual_times)
-# 
-# readr::write_csv(manual_times_df, 'data/seungmi-manual-times.csv')
-```
-
-```{r}
-manual_times_df <- manual_labs %>% 
-   mutate(SMLee_start_mass_trans = as_datetime(SMLee_start_mass_trans)) %>% 
-  filter(!fileid %in% unknown_patients) %>% 
-  select(fileid, SMLee_start_mass_trans) %>% 
-  left_join(auto_pheno_df, by = 'fileid') %>% 
-  filter(SMLee_start_mass_trans != auto_start_mass_trans) %>% 
-  distinct()
-```
-
-
-
-
-```{r}
 massive_trans <- tf %>% 
   mutate(val_ori = val) %>% 
   filter(grepl('#', val), # only consider rows with #
@@ -87,36 +88,10 @@ massive_trans <- tf %>%
 
 ```
 
-## Special cases
 
-### Manually checked for cases:
-
-The patient `C4_190617_074206` underwent `Spondylectomy : en-bloc spondylectomy, thoracic` and the `sum_ebl` (estimated blood loss during surgery) was 25800 and the `sum_rbc` was 66 (transfision of 66 rbc). This also acutally happended during operation. This type of massive transfusion is not normal and may have been not expected before operation, and if we can predict that, we can prepare that situation. I think that is the purpose of our project.
-
-SeungMi confirmed it's reasonable to add manually the following start times:
-```{r}
-tf %>% filter(fileid == 'C4_190617_074206')
-manual_times_df <- manual_times_df %>% 
-  rbind(c('C4_190617_074206', '2019-06-17T17:00:00Z')) %>% 
-  rbind(c('D1_180802_011516', '2018-08-02T01:15:00Z')) %>% 
-  # rbind(c('F2_180129_140321', '2018-01-29T17:30:00Z')) %>% 
-  {.}
-```
+## Preprocessing of specific patients:
 
 The following changes include some straight forward modifications and others (also checked with `sum_rbc`, see Seung Mi's google doc).
-
-<!-- `D2_181018_132531`: The patient underwent `Repair of aneurysm ( AAA )  : retroperitoneal approach or medial visceral rotation, supraceliac clamping` and I think that 140 transfusion within 7 hours is possible during that operation. -->
-<!-- ```{r echo=FALSE} -->
-<!-- massive_trans %>% filter(fileid == 'D2_181018_132531') -->
-<!-- ``` -->
-
-<!-- `A2_190228_141759` underwent `Total hysterectomy ( multiport laparoscopy assisted vaginal )  : LAVH-BSO `. The surgery usually does not cause massive transfusion, but the `sum_rbc` during surgery was '63' in cases file, and she died after the surgery. This was not normal situation but this actually happened. -->
-<!-- ```{r echo=FALSE} -->
-<!-- massive_trans %>% filter(fileid == 'A2_190228_141759') -->
-<!-- ``` -->
-
-
-### On the other hand: (non-cases)
 
 - We confirm that `F2_180816_095513` has `sum_rbc= 6`, concluding they did have massive transfusion.
 Replacing `#1-3` with `#3-5` and `#3` with `#6`.
@@ -182,12 +157,10 @@ all_trans <- massive_trans %>%
   tidyr::separate_rows(sep_val, sep = ',') %>%
   mutate(sep_val = as.integer(sep_val))
 
-mt_patients <- manual_times_df$fileid # temporary
-patients_to_check <- setdiff(unique(all_trans$fileid), c(mt_patients, unknown_patients))
+patients_to_check <- unique(all_trans$fileid)
 
 pheno_list <- list()
 
-options(warn=2)
 for (patient in patients_to_check){
   df_i <- all_trans %>% filter(fileid == patient)
   start_h <- NA
@@ -200,81 +173,25 @@ for (patient in patients_to_check){
       t1 <- df_i %>% filter(sep_val == pre_idx) %>% pull(dt)
       diff_h <- difftime(t2, t1, units = 'hours') %>% as.numeric()
       if (diff_h < 1){
-        start_h <- t1
+        start_h <- t1[1]
         break
       }
     }
   }
   
   if (!is.na(start_h)){
-    mt_patients <- c(mt_patients, patient)
-    pheno_list[[patient]] <- data.frame(fileid = patient, start_mass_trans = start_h)
+    pheno_list[[patient]] <- data.frame(fileid = patient, auto_start_mass_trans = start_h)
   }
 }
 
-pheno_df <- bind_rows(pheno_list) %>% 
-  bind_rows(manual_times_df %>% mutate(start_mass_trans = as_datetime(start_mass_trans)))
+pheno_df <- bind_rows(pheno_list)
 ```
 
 
 ```{r}
-pheno_df %>% readr::write_csv('data/mass-trans-phenotype.csv')
-
-tf_pheno <- tf %>% 
-  left_join(pheno_df, by = 'fileid') %>% 
-  mutate(had_mass_trans = !is.na(start_mass_trans))
-
-readr::write_csv(tf_pheno, 'data/tf_pheno.csv')
-
-cases %>% 
-  left_join(pheno_df, by = 'fileid') %>% 
-  mutate(had_mass_trans = !is.na(start_mass_trans)) %>% 
-  readr::write_csv('data/case_pheno.csv')
-
-read_excel('data/tf.xlsx') %>% 
-  mutate(fileid = gsub('.vital', '', fileid)) %>%
-  left_join(pheno_df, by = 'fileid') %>% 
-  mutate(had_mass_trans = !is.na(start_mass_trans)) %>% 
-  readr::write_csv('data/tf-all-pheno.csv')
-
-manual_labs %>% 
-  mutate(fileid = gsub('.vital', '', fileid)) %>%
-  left_join(pheno_df, by = 'fileid') %>% 
-  mutate(had_mass_trans = !is.na(SMLee_start_mass_trans)) %>% 
-  readr::write_csv('data/to-seungmi-checking.csv')
-
-check1=manual_labs %>% 
-  mutate(fileid = gsub('.vital', '', fileid)) %>%
-  left_join(pheno_df, by = 'fileid') %>% 
-  mutate(had_mass_trans = !is.na(SMLee_start_mass_trans))
+pheno_df %>%
+  mutate(auto_start_mass_trans = as_datetime(auto_start_mass_trans)) %>% 
+  readr::write_csv('data/auto-mass-trans-phenotype.csv')
 ```
 
-
-Check: `C1_191121_080136` should have massive transfusion.
-`D4_191003_082024` should not.
-`F4_171219_131836` should start at `2017-12-19T17:15:00Z`.
-
-```{r echo=FALSE}
-pheno_df %>% filter(fileid %in% c('C1_191121_080136', 'D4_191003_082024', 'A2_180716_111059', 'F4_171219_131836', 'C4_190617_074206', 'F2_180816_095513', 'D1_170724_102446', 'D1_180802_011516', 'D4_190619_094830', 'D5_180803_162219', 'E6_180517_124933', 'F2_190210_060623'))
-```
-
-
-```{r}
-pheno_df %>% filter(
-  fileid %in%
-    c(
-      'A4_180528_103731',
-      'D1_170930_005636',
-      'D1_180226_094239',
-      'D1_181030_204341',
-      'D2_170722_044855',
-      'D2_171207_092233',
-      'F2_180129_140321',
-      'F3_180509_221019'
-    )
-) %>%
-  arrange(fileid)
-
-manual_labs %>% filter(fileid == 'F2_180129_140321')
-```
 
