@@ -14,9 +14,12 @@ library(stringr)
 library(lubridate)
 ```
 
+```{r}
+load('data/gen-outcome.Rdata')
+```
+
 
 ```{r warning=FALSE}
-load('data/gen-outcome.Rdata')
 auto_pheno_df <- readr::read_csv('data/auto-mass-trans-phenotype.csv')
 manual_labs <- read_excel('data/tf_pheno_Trang_SMLee_20200809-reference.xlsx', na = 'NA') %>% 
   # select(-start_mass_trans) %>% 
@@ -30,12 +33,16 @@ tf <- tf %>% filter(!fileid %in% unknown_patients)
 cases <- cases %>% filter(!fileid %in% unknown_patients)
 ```
 
+
+Among 34,183 events, 1,333 is of 47 unknown patients. Of the remaining 32,850 events, there are uniquely 2,559 patients: 586 with and 1,973 without massive transfusion.
+
 ```{r}
 all_times <- manual_labs %>% 
   mutate(SMLee_start_mass_trans = as_datetime(SMLee_start_mass_trans)) %>% 
   filter(!fileid %in% unknown_patients) %>%
   left_join(auto_pheno_df, by = 'fileid') %>% 
-  mutate(correct_start_time = SMLee_start_mass_trans)
+  mutate(correct_start_time = SMLee_start_mass_trans,
+         ekg_end_time = correct_start_time - minutes(10))
 
 manual_times_df <- all_times %>% 
   filter(SMLee_start_mass_trans != auto_start_mass_trans) %>%
@@ -49,7 +56,7 @@ just_start_times <- all_times %>%
   distinct() # NA means the patient DID NOT have massive transfusion
 
 all_times %>% 
-  select(fileid, correct_start_time) %>% 
+  select(fileid, correct_start_time, ekg_end_time) %>% 
   distinct() %>% 
   readr::write_csv('data/mass-trans-phenotype.csv')
 
@@ -59,5 +66,22 @@ all_times %>%
 manual_times_df %>% 
   readr::write_csv('data/just-manual.csv')
 
+data.frame(unknown_patients = unknown_patients) %>% 
+  readr::write_csv('data/unknown-patients.csv')
+
+all_times %>% 
+  select(fileid, correct_start_time, ekg_end_time) %>% 
+  filter(!is.na(correct_start_time)) %>% 
+  distinct() %>% 
+  readr::write_csv('data/mass-trans-phenotype-case-only.csv')
+
 ```
 
+```{r}
+all_times %>% count(!is.na(correct_start_time))
+```
+
+  `!is.na(correct_start_time)`     n
+  <lgl>                        <int>
+1 FALSE                        17012
+2 TRUE                         15838
