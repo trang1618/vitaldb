@@ -107,7 +107,6 @@ get_num_list <- function(val){
 ```
 
 
-
 Computed from Tf3, the nurse's chart
 
 ```{r}
@@ -118,16 +117,34 @@ skimr::skim(tf)
 
 massive_trans <- tf %>% 
   arrange(`pt no`, opdate, oporder, Tftime) %>%
-  mutate(Tftime = ymd_hms(paste0(Tftime, '00')),
-         # unit = gsub('\\(SICU\\)', '', unit)
-         ) %>% 
+  mutate(Tftime = ymd_hms(paste0(Tftime, '00'))) %>% 
   add_count(`pt no`) %>%
-  filter(n >= 3) %>%
   group_by(`pt no`, oporder) %>%
-  mutate(difftrans = difftime(Tftime, lag(Tftime, 2),
+  mutate(difftrans = difftime(lead(Tftime, 2), Tftime,
                               units = 'mins'),
          massive_trans = difftrans < 60) %>%
+  ungroup() %>% 
   tidyr::replace_na(list(massive_trans = FALSE)) %>% 
+  group_by(`pt no`, massive_trans) %>% 
+  mutate(count= row_number(), 
+         first_massive_trans = massive_trans & count==1,
+         first_non_massive_trans = (!massive_trans) & count == 1) %>% 
+  ungroup() %>% 
+  filter(first_massive_trans|first_non_massive_trans) %>% 
+  group_by(`pt no`) %>% 
+  top_n(n = 1, wt = massive_trans) %>% 
+  ungroup() %>% 
   {.}
-readr::write_csv(massive_trans, 'data/auto-mass-trans-phenotype-test.csv')
+
+massive_trans %>% 
+  mutate(correct_start_time = case_when(
+    massive_trans ~ as_datetime(Tftime),
+    TRUE ~ as_datetime(NA)),
+    ekg_end_time = case_when(
+      massive_trans ~ as_datetime(Tftime) - minutes(10),
+      TRUE ~ as_datetime(NA)),
+    masstf = 0.5*(1+massive_trans)) %>% 
+  select(fileid2 = `pt no`, masstf,
+         correct_start_time, ekg_end_time) %>% 
+  readr::write_csv('data/2020-01-19_auto-mass-trans-phenotype-test.csv')
 ```
