@@ -1,0 +1,133 @@
+---
+title: "Read data"
+output:
+  html_document:
+    highlight: tango
+    toc: true
+---
+
+## Read in data and explore
+```{r setup, message=FALSE, warning=FALSE}
+library(dplyr)
+library(readxl)
+library(stringr)
+library(lubridate)
+
+get_num_list <- function(val){
+  # reformat the `val` column, e.g. get_num_list('#3-#5') = '3,4,5'
+  if (grepl('-', val) || nrow(str_locate_all(val, '#')[[1]]) > 1){
+    return(str_split(val, '-|#') %>% 
+      unlist() %>%
+      gsub('#|,', '', .) %>% 
+      as.integer() %>% 
+      na.omit() %>% 
+      as.list() %>% 
+      do.call('seq.int', .) %>% 
+      paste(collapse = ','))
+  }
+  gsub('#', '', val)
+}
+```
+
+```{r include=FALSE}
+# case_deets <- read_Cexcel('data/cases-detail.xlsx')
+# labs <- read_excel('data/labs.xlsx')
+# nms <- names(read_excel('data/cases.xlsx', n_max = 0))
+# ct <- vector(mode = 'character')
+# for (i in nms){
+#   ct <- c(ct, if (grepl('^em_yn|premedi_smoking|nurse_|caseid', i)){
+#   'text'
+#   } else if (grepl('postop_tnt_peak30|preop_tnt', i)) { # very high missing rate for these columns anyway
+#     'text'
+#   } else {'guess'})
+# }
+# 
+# ecg_patients <- readr::read_csv('data/vitaldb_trks_art_ecg.csv') %>%
+#   mutate(Filename = gsub('.vital', '', Filename)) %>%
+#   pull(Filename)
+# 
+# cases <- read_excel('data/cases.xlsx', col_types = ct) %>%
+#   mutate(id = gsub('.vital', '', id)) %>%
+#   filter(id %in% ecg_patients) %>% # only consider invasive arterial monitoring  patients
+#   mutate(em_yn = as.factor(em_yn),
+#          id = gsub('.vital', '', id))
+# tf_old <- tf <- read_excel('data/Tf.xlsx') %>%
+#   # select(- no) %>% 
+#   # mutate(id = gsub('.vital', '', id)) %>%
+#   # filter(id %in% ecg_patients) %>% # only consider invasive arterial monitoring  patients
+#   distinct() # there are some duplicated rows in tf
+
+# tf <- read_excel('data/Tf2.xlsx') %>%
+#   select(- c(no, opdate)) %>%
+#   # mutate(id = gsub('.vital', '', id)) %>%
+#   # filter(id %in% ecg_patients) %>% # only consider invasive arterial monitoring  patients
+#   distinct() # there are some duplicated rows in tf
+# skimr::skim(tf)
+# 
+# massive_trans <- tf %>% 
+#   # arrange(ptno, opdate, opno, Tftime) %>% 
+#   mutate(Tftime = ymd_hms(paste0(Tftime, '00')),
+#          unit = gsub('\\(SICU\\)', '', unit)) %>% 
+#   # add_count(ptno) %>% 
+#   # filter(n >= 3) %>% 
+#   # group_by(ptno, order) %>% 
+#   # mutate(difftrans = difftime(Tftime, lag(Tftime, 2),
+#   #                             units = 'mins'),
+#   #        massive_trans = difftrans < 60) %>% 
+#   # filter(massive_trans) %>% 
+#   filter(grepl('#', unit)) %>% 
+#   {.}
+# 
+# # save(tf, ecg_patients, cases, file = 'data/gen-outcome-test.Rdata')
+```
+
+
+```{r}
+# massive_trans$conv_val <- sapply(massive_trans$unit, get_num_list)
+# 
+# all_trans <- massive_trans %>%
+#   mutate(sep_val = conv_val) %>% 
+#   tidyr::separate_rows(sep_val, sep = ',') %>%
+#   mutate(sep_val = as.integer(sep_val))
+# 
+# mass_quick <- all_trans %>% 
+#   group_by(ptno, order) %>% 
+#   mutate(difftrans = difftime(Tftime, lag(Tftime, 2),
+#                               units = 'mins'),
+#          massive_trans = difftrans < 60) %>%
+#   ungroup() %>% 
+#   tidyr::replace_na(list(massive_trans = FALSE)) %>% 
+#   # distinct(ptno, massive_trans) %>% 
+#   {.}
+# 
+# tf %>%
+#   left_join(mass_quick, by = 'ptno') %>% 
+#   # mutate(auto_start_mass_trans = as_datetime(auto_start_mass_trans)) %>% 
+#   readr::write_csv('data/auto-mass-trans-phenotype-test.csv')
+```
+
+
+
+Computed from Tf3, the nurse's chart
+
+```{r}
+tf <- read_excel('data/Tf3.xlsx') %>%
+  select(- c(no, bloodamount, bloodtype)) %>%
+  distinct() # there are some duplicated rows in tf
+skimr::skim(tf)
+
+massive_trans <- tf %>% 
+  arrange(`pt no`, opdate, oporder, Tftime) %>%
+  mutate(Tftime = ymd_hms(paste0(Tftime, '00')),
+         # unit = gsub('\\(SICU\\)', '', unit)
+         ) %>% 
+  add_count(`pt no`) %>%
+  filter(n >= 3) %>%
+  group_by(`pt no`, oporder) %>%
+  mutate(difftrans = difftime(Tftime, lag(Tftime, 2),
+                              units = 'mins'),
+         massive_trans = difftrans < 60) %>%
+  tidyr::replace_na(list(massive_trans = FALSE)) %>% 
+  {.}
+readr::write_csv(massive_trans, 'data/auto-mass-trans-phenotype-test.csv')
+```
