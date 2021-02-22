@@ -110,28 +110,28 @@ get_num_list <- function(val){
 Computed from Tf3, the nurse's chart
 
 ```{r}
-tf <- read_excel('data/Tf3.xlsx') %>%
-  select(- c(no, bloodamount, bloodtype)) %>%
+tf <- read_excel('data/Tf4-forTrang.xlsx') %>%
+  select(ptno, opdate, oporder, Tftime) %>%
   distinct() # there are some duplicated rows in tf
 skimr::skim(tf)
 
 massive_trans <- tf %>% 
-  arrange(`pt no`, opdate, oporder, Tftime) %>%
+  arrange(ptno, opdate, oporder, Tftime) %>%
   mutate(Tftime = ymd_hms(paste0(Tftime, '00'))) %>% 
-  add_count(`pt no`) %>%
-  group_by(`pt no`, oporder) %>%
+  add_count(ptno) %>%
+  group_by(ptno, oporder) %>%
   mutate(difftrans = difftime(lead(Tftime, 2), Tftime,
                               units = 'mins'),
          massive_trans = difftrans < 60) %>%
   ungroup() %>% 
   tidyr::replace_na(list(massive_trans = FALSE)) %>% 
-  group_by(`pt no`, massive_trans) %>% 
+  group_by(ptno, massive_trans) %>% 
   mutate(count= row_number(), 
          first_massive_trans = massive_trans & count==1,
          first_non_massive_trans = (!massive_trans) & count == 1) %>% 
   ungroup() %>% 
   filter(first_massive_trans|first_non_massive_trans) %>% 
-  group_by(`pt no`) %>% 
+  group_by(ptno) %>% 
   top_n(n = 1, wt = massive_trans) %>% 
   ungroup() %>% 
   {.}
@@ -144,7 +144,7 @@ massive_trans %>%
       massive_trans ~ as_datetime(Tftime) - minutes(10),
       TRUE ~ as_datetime(NA)),
     masstf = 0.5*(1+massive_trans)) %>% 
-  select(fileid2 = `pt no`, masstf,
+  select(fileid2 = ptno, masstf,
          correct_start_time, ekg_end_time) %>% 
-  readr::write_csv('data/2020-01-19_auto-mass-trans-phenotype-test.csv')
+  readr::write_csv('data/2020-02-22_auto-mass-trans-phenotype-test.csv')
 ```
