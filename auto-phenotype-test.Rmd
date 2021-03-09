@@ -111,7 +111,7 @@ Computed from Tf3, the nurse's chart
 
 ```{r}
 tf <- read_excel('data/Tf4-forTrang.xlsx') %>%
-  select(ptno, opdate, oporder, Tftime) %>%
+  select(ptno, orin, SERIALNO, opdate, oporder, Tftime) %>%
   distinct() # there are some duplicated rows in tf
 skimr::skim(tf)
 
@@ -130,10 +130,10 @@ massive_trans <- tf %>%
          first_massive_trans = massive_trans & count==1,
          first_non_massive_trans = (!massive_trans) & count == 1) %>% 
   ungroup() %>% 
-  filter(first_massive_trans|first_non_massive_trans) %>% 
-  group_by(ptno) %>% 
-  top_n(n = 1, wt = massive_trans) %>% 
-  ungroup() %>% 
+  # filter(first_massive_trans|first_non_massive_trans) %>% 
+  # group_by(ptno) %>% 
+  # top_n(n = 1, wt = massive_trans) %>% 
+  # ungroup() %>% 
   {.}
 
 massive_trans %>% 
@@ -144,7 +144,7 @@ massive_trans %>%
       massive_trans ~ as_datetime(Tftime) - minutes(10),
       TRUE ~ as_datetime(NA)),
     masstf = 0.5*(1+massive_trans)) %>% 
-  select(fileid2 = ptno, masstf,
+  select(ptno, orin, SERIALNO, masstf,
          correct_start_time, ekg_end_time) %>% 
-  readr::write_csv('data/2020-02-22_auto-mass-trans-phenotype-test.csv')
+  readr::write_csv('data/2020-03-08_auto-mass-trans-phenotype-test.csv')
 ```
