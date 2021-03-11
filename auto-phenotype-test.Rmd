@@ -110,7 +110,10 @@ get_num_list <- function(val){
 Computed from Tf3, the nurse's chart
 
 ```{r}
-tf <- read_excel('data/Tf4-forTrang.xlsx') %>%
+tf_raw <- read_excel('data/Tf4-forTrang.xlsx') 
+
+tf <- tf_raw %>%
+  filter(bloodtype == 'RBC') %>% 
   select(ptno, orin, SERIALNO, opdate, oporder, Tftime) %>%
   distinct() # there are some duplicated rows in tf
 skimr::skim(tf)
@@ -130,13 +133,13 @@ massive_trans <- tf %>%
          first_massive_trans = massive_trans & count==1,
          first_non_massive_trans = (!massive_trans) & count == 1) %>% 
   ungroup() %>% 
-  # filter(first_massive_trans|first_non_massive_trans) %>% 
-  # group_by(ptno) %>% 
-  # top_n(n = 1, wt = massive_trans) %>% 
-  # ungroup() %>% 
+  filter(first_massive_trans|first_non_massive_trans) %>%
+  group_by(ptno) %>%
+  top_n(n = 1, wt = massive_trans) %>%
+  ungroup() %>%
   {.}
 
-massive_trans %>% 
+out_file <- massive_trans %>% 
   mutate(correct_start_time = case_when(
     massive_trans ~ as_datetime(Tftime),
     TRUE ~ as_datetime(NA)),
@@ -145,6 +148,8 @@ massive_trans %>%
       TRUE ~ as_datetime(NA)),
     masstf = 0.5*(1+massive_trans)) %>% 
   select(ptno, orin, SERIALNO, masstf,
-         correct_start_time, ekg_end_time) %>% 
-  readr::write_csv('data/2020-03-08_auto-mass-trans-phenotype-test.csv')
+         correct_start_time, ekg_end_time) 
+
+out_file %>% 
+  readr::write_csv('data/2021-03-11_auto-mass-trans-phenotype-test.csv')
 ```
