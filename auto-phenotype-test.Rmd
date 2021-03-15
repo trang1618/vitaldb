@@ -114,32 +114,38 @@ tf_raw <- read_excel('data/Tf4-forTrang.xlsx')
 
 tf <- tf_raw %>%
   filter(bloodtype == 'RBC') %>% 
-  select(ptno, orin, SERIALNO, opdate, oporder, Tftime) %>%
-  distinct() # there are some duplicated rows in tf
+  select(ptno, orin, SERIALNO, opdate, oporder, Tftime) 
 skimr::skim(tf)
 
 massive_trans <- tf %>% 
-  arrange(ptno, opdate, oporder, Tftime) %>%
+  arrange(SERIALNO, opdate, oporder, Tftime) %>%
   mutate(Tftime = ymd_hms(paste0(Tftime, '00'))) %>% 
-  add_count(ptno) %>%
-  group_by(ptno, oporder) %>%
+  add_count(SERIALNO) %>%
+  group_by(SERIALNO, oporder) %>%
   mutate(difftrans = difftime(lead(Tftime, 2), Tftime,
                               units = 'mins'),
          massive_trans = difftrans < 60) %>%
   ungroup() %>% 
   tidyr::replace_na(list(massive_trans = FALSE)) %>% 
-  group_by(ptno, massive_trans) %>% 
+  group_by(SERIALNO, massive_trans) %>% 
   mutate(count= row_number(), 
          first_massive_trans = massive_trans & count==1,
          first_non_massive_trans = (!massive_trans) & count == 1) %>% 
   ungroup() %>% 
+  # filter(first_massive_trans|first_non_massive_trans) %>%
+  # group_by(SERIALNO) %>%
+  # top_n(n = 1, wt = massive_trans) %>%
+  # ungroup() %>%
+  {.}
+
+massive_trans_new <- massive_trans %>% 
   filter(first_massive_trans|first_non_massive_trans) %>%
-  group_by(ptno) %>%
+  group_by(SERIALNO) %>%
   top_n(n = 1, wt = massive_trans) %>%
   ungroup() %>%
   {.}
 
-out_file <- massive_trans %>% 
+out_file <- massive_trans_new %>% 
   mutate(correct_start_time = case_when(
     massive_trans ~ as_datetime(Tftime),
     TRUE ~ as_datetime(NA)),
@@ -151,5 +157,11 @@ out_file <- massive_trans %>%
          correct_start_time, ekg_end_time) 
 
 out_file %>% 
-  readr::write_csv('data/2021-03-11_auto-mass-trans-phenotype-test.csv')
+  readr::write_csv('data/2021-03-14_auto-mass-trans-phenotype-test.csv')
+
+
+tf_raw %>% 
+  left_join(out_file, by = c('ptno', 'SERIALNO', 'orin')) %>% 
+  select(- ekg_end_time) %>% 
+  readr::write_csv('data/2021-03-14_auto-mass-for-seungmi.csv')
 ```
