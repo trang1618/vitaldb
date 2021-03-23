@@ -88,6 +88,12 @@ massive_trans <- tf %>%
 
 ```
 
+```{r}
+# length(unique(massive_trans$fileid))
+# length(unique(tf$fileid))
+# setdiff(unique(tf$fileid), unique(massive_trans$fileid))
+```
+
 
 ## Preprocessing of specific patients:
 
@@ -163,7 +169,8 @@ pheno_list <- list()
 
 for (patient in patients_to_check){
   df_i <- all_trans %>% filter(fileid == patient)
-  start_h <- NA
+  start_h <- min(df_i$dt)
+  masstf <- 0.5
 
   for (i in 3:max(df_i$sep_val)){
     if ((i %in% df_i$sep_val) && (sum(df_i$sep_val <= (i-2)) > 0)){
@@ -174,13 +181,16 @@ for (patient in patients_to_check){
       diff_h <- difftime(t2, t1, units = 'hours') %>% as.numeric()
       if (diff_h < 1){
         start_h <- t1[1]
+        masstf <- 1
         break
       }
     }
   }
   
-  if (!is.na(start_h)){
-    pheno_list[[patient]] <- data.frame(fileid = patient, auto_start_mass_trans = start_h)
+  if (!is.na(start_h)) {
+    pheno_list[[patient]] <- data.frame(fileid = patient,
+                                        masstf = masstf,
+                                        correct_start_time = start_h)
   }
 }
 
@@ -190,8 +200,6 @@ pheno_df <- bind_rows(pheno_list)
 
 ```{r}
 pheno_df %>%
-  mutate(auto_start_mass_trans = as_datetime(auto_start_mass_trans)) %>% 
-  readr::write_csv('data/auto-mass-trans-phenotype.csv')
+  mutate(correct_start_time = as_datetime(correct_start_time)) %>% 
+  readr::write_csv('data/2021-03-23_auto-mass-trans-phenotype.csv')
 ```
-
-
